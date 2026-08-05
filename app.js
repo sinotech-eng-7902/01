@@ -5171,12 +5171,6 @@ sidebar.classList.contains("collapsed")
 
 }
 
-})().catch(error=>{
-
-console.error("系統初始化失敗",error);
-alert(`系統初始化失敗：${error.message}`);
-
-});
 
 let sealCalendar = null;
 
@@ -5303,4 +5297,10 @@ function loadCalendarEvents() {
     oldSources.forEach(s => s.remove());
     sealCalendar.addEventSource(events);
 }
-})();
+})().catch(error=>{
+
+console.error("系統初始化失敗",error);
+alert(`系統初始化失敗：${error.message}`);
+
+});
+
