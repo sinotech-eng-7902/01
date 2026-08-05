@@ -5263,8 +5263,6 @@ function loadCalendarEvents() {
             });
         }
     });
-        }
-    });
 
     (typeof pendingRecords !== 'undefined' ? pendingRecords : []).forEach(p => {
         let startStr = toSafeDateString(p.expectedBorrowTime);
