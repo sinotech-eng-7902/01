@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>印鑑借用管理系統</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+
+    <link rel="stylesheet" href="./styles.css?v=20260718-v156-permission-name-center">
+
+<script src="https://unpkg.com/lucide@latest"></script>
+
+</head>
+
+
+<body>
+
+<div id="loginPage"
+style="
+height:100vh;
+display:none;
+justify-content:center;
+align-items:center;
+background:#f1f5f9;
+">
+
+<div
+style="
+background:white;
+padding:40px;
+width:420px;
+border-radius:20px;
+text-align:center;
+box-shadow:0 10px 30px rgba(0,0,0,.08);
+">
+
+<h1>印鑑借用管理系統</h1>
+
+<br>
+
+<button
+class="btn btn-primary"
+onclick="googleLogin()">
+
+Google 登入
+
+</button>
+
+</div>
+
+</div>
+
+<div id="systemArea"
+style="
+display:none;
+opacity:0;
+transition:.15s;
+">
+
+
+<div class="app portal-app">
+
+<header class="top-navbar">
+
+    <div class="brand-area">
+        <div class="brand-title">
+            <span class="brand-icon-wrap brand-logo-wrap">
+                <img src="./assets/logo-s.png" class="brand-logo" alt="系統識別">
+            </span>
+            <span>印鑑借用管理系統</span>
+        </div>
+    </div>
+
+    <nav class="top-menu" aria-label="主要功能列">
+
+        <div class="top-menu-group">
+            <button type="button" class="top-menu-button">
+                <i data-lucide="clipboard-list" class="menu-icon"></i>
+                <span>借用作業</span>
+                <i data-lucide="chevron-down" class="top-chevron"></i>
+            </button>
+            <div class="top-dropdown">
+                <div class="menu-item active" data-tooltip="借用登記" onclick="showPage('borrowPage',this)">
+                    <i data-lucide="clipboard-list" class="menu-icon"></i><span>借用登記</span>
+                </div>
+                <div class="menu-item" data-tooltip="待借用管理" onclick="showPage('pendingPage',this)">
+                    <i data-lucide="clock-3" class="menu-icon"></i><span>待借用管理</span>
+                </div>
+                <div class="menu-item" data-tooltip="印鑑行事曆" onclick="showCalendarPage(this)">
+                    <i data-lucide="calendar-days" class="menu-icon"></i><span>印鑑行事曆</span>
+                </div>
+                <div class="menu-item" data-tooltip="歸還作業" onclick="showPage('returnPage',this)">
+                    <i data-lucide="rotate-ccw" class="menu-icon"></i><span>歸還作業</span>
+                </div>
+                <div class="menu-item" data-tooltip="借用紀錄" onclick="showPage('historyPage',this)">
+                    <i data-lucide="file-text" class="menu-icon"></i><span>借用紀錄</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="top-menu-group" id="systemMenuTitle">
+            <button type="button" class="top-menu-button">
+                <i data-lucide="settings" class="menu-icon"></i>
+                <span>系統管理</span>
+                <i data-lucide="chevron-down" class="top-chevron"></i>
+            </button>
+            <div class="top-dropdown">
+                <div class="top-dropdown-section-label">基礎設定</div>
+                <div class="menu-item" data-tooltip="印鑑維護" onclick="showPage('sealPage',this)">
+                    <i data-lucide="badge-check" class="menu-icon"></i><span>印鑑維護</span>
+                </div>
+                <div class="menu-item" data-tooltip="部門維護" onclick="showPage('deptPage',this)">
+                    <i data-lucide="building-2" class="menu-icon"></i><span>部門維護</span>
+                </div>
+                <div class="top-dropdown-section-label">帳號與權限</div>
+                <div class="menu-item" id="memberMenu" data-tooltip="人員管理" onclick="showPage('memberPage',this)">
+                    <i data-lucide="contact-round" class="menu-icon"></i><span>人員管理</span>
+                </div>
+                <div class="menu-item" id="permissionMenu" data-tooltip="權限管理" onclick="showPage('permissionPage',this)">
+                    <i data-lucide="users" class="menu-icon"></i><span>權限管理</span>
+                </div>
+                <div class="top-dropdown-section-label">系統紀錄</div>
+                <div class="menu-item" id="loginLogMenu" data-tooltip="登入紀錄" onclick="showPage('loginLogPage',this)">
+                    <i data-lucide="log-in" class="menu-icon"></i><span>登入紀錄</span>
+                </div>
+                <div class="menu-item" id="auditLogMenu" data-tooltip="操作紀錄" onclick="openAuditLogPage(this)">
+                    <i data-lucide="history" class="menu-icon"></i><span>操作紀錄</span>
+                </div>
+            </div>
+        </div>
+
+    </nav>
+
+    <div class="top-user-area">
+        <i data-lucide="user-round" class="top-user-icon"></i>
+        <div class="top-user-text">
+            <div id="sidebarUserName">使用者</div>
+            <div id="sidebarUserEmail" class="top-user-email-hidden">-</div>
+        </div>
+        <button class="top-logout-btn" onclick="logout()">登出</button>
+    </div>
+
+</header>
+
+<div class="main">
+
+<!-- 借用頁 -->
+
+<div id="borrowPage">
+
+<div class="panel borrow-page-panel">
+
+<div class="page-heading">
+<div class="page-heading-main">
+<h2 class="detail-title">
+<i data-lucide="clipboard-list" class="detail-title-icon"></i>
+借用登記
+</h2>
+<p class="page-description">選擇印鑑並填寫本次借用資料</p>
+</div>
+<div class="borrow-summary">
+<span class="summary-pill summary-pill-available">
+<b id="borrowAvailableCount">0</b> 組可借用
+</span>
+<span class="summary-pill">
+<b id="borrowBorrowedCount">0</b> 組借出
+</span>
+</div>
+</div>
+
+<div class="section-divider"></div>
+
+<div id="pendingTransferBanner" class="pending-transfer-banner hidden">
+<div>
+<i data-lucide="import"></i>
+<span>
+正在處理待借用案件
+<b id="pendingTransferLabel">-</b>
+</span>
+</div>
+<button class="btn-link" type="button" onclick="cancelPendingTransfer()">
+取消帶入
+</button>
+</div>
+
+<div class="borrow-workbench">
+
+<section class="panel seal-status-panel">
+<div class="panel-heading-compact">
+<div>
+<h2>印鑑即時狀態</h2>
+<p>點選可借用印鑑；借出中可查看明細</p>
+</div>
+</div>
+
+<label class="seal-search" for="borrowSealSearch">
+<i data-lucide="search"></i>
+<input
+type="search"
+id="borrowSealSearch"
+placeholder="搜尋印鑑"
+autocomplete="off">
+</label>
+
+<div class="seal-status-list" id="statusGrid"></div>
+</section>
+
+<section class="panel borrow-data-panel">
+<div class="borrow-data-heading">
+<div>
+<h2 id="borrowPanelTitle">借用資料</h2>
+<p id="borrowPanelDescription">請先從左側選擇一組可借用印鑑</p>
+</div>
+<span id="borrowModeBadge" class="badge badge-green hidden">可借用</span>
+</div>
+
+<div id="borrowedMeta" class="borrowed-meta hidden"></div>
+
+<input type="hidden" id="seal">
+
+<div class="borrow-form-grid">
+<div class="form-group">
+<label for="borrower">借用人</label>
+<input type="text" id="borrower" placeholder="請輸入借用人" autocomplete="off">
+</div>
+
+<div class="form-group">
+<label for="department">部門</label>
+<select id="department"></select>
+</div>
+
+<div class="form-group">
+<label for="projectNo">計畫編號</label>
+<input type="text" id="projectNo" placeholder="請輸入計畫編號" autocomplete="off">
+</div>
+
+<div class="form-group">
+<label for="formNo">表單編號</label>
+<input type="text" id="formNo" placeholder="請輸入表單編號" autocomplete="off">
+</div>
+
+<div class="form-group form-group-purpose">
+<label for="purpose">用途</label>
+<textarea id="purpose" rows="4" placeholder="請簡述借用用途"></textarea>
+</div>
+
+<div class="form-group">
+<label for="expectedReturnTime">預計歸還時間</label>
+<input type="datetime-local" id="expectedReturnTime">
+</div>
+</div>
+
+<div class="borrow-action-bar">
+<div id="borrowSelectionSummary" class="borrow-selection-summary">
+尚未選擇印鑑
+</div>
+
+<div class="borrow-action-buttons">
+<button
+id="cancelBorrowEditButton"
+class="btn btn-gray hidden"
+type="button"
+onclick="cancelInlineBorrowEdit()">
+取消
+</button>
+
+<button
+id="editBorrowedButton"
+class="btn btn-gray hidden"
+type="button"
+onclick="startInlineBorrowEdit()">
+<i data-lucide="pencil"></i>
+編輯資料
+</button>
+
+<button
+id="saveBorrowedButton"
+class="btn btn-primary borrow-main-action hidden"
+type="button"
+onclick="saveInlineBorrowEdit()">
+儲存變更
+</button>
+
+<button
+id="confirmBorrowMainButton"
+class="btn btn-primary borrow-main-action"
+type="button"
+onclick="borrowSeal()"
+disabled>
+確認借用
+</button>
+</div>
+</div>
+</section>
+
+</div>
+
+</div>
+
+</div>
+
+<!-- 歸還作業 -->
+
+<!-- 待借用管理 -->
+
+<div id="pendingPage" class="hidden">
+
+<div class="panel">
+
+<div class="page-heading">
+
+<div class="page-heading-main">
+
+<h2 class="detail-title">
+
+<i data-lucide="clock-3" class="detail-title-icon"></i>
+待借用管理
+
+ </h2>
+
+<p class="page-description">
+提前建檔，待實際借用時再轉正式借用
+</p>
+
+</div>
+
+<button
+id="addPendingButton"
+class="btn btn-primary page-heading-action"
+onclick="openPendingModal()">
+
+<i data-lucide="circle-plus"></i>
+
+<span>新增待借用</span>
+
+</button>
+
+</div>
+
+<div class="section-divider"></div>
+
+<div class="table-wrap">
+
+<table class="management-table">
+
+<thead>
+<tr>
+<th>承辦人</th>
+<th>部門</th>
+<th>計畫編號</th>
+<th>表單編號</th>
+<th>用途</th>
+<th>狀態</th>
+<th class="pending-action-column">操作</th>
+</tr>
+</thead>
+
+<tbody id="pendingTable">
+
+<tr>
+<td class="table-empty-cell" colspan="7">
+目前無待借用案件
+</td>
+</tr>
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+<!-- 印鑑行事曆 -->
+<div id="calendarPage" class="hidden">
+<div class="panel">
+<div class="page-heading">
+<div class="page-heading-main">
+<h2 class="detail-title">
+<i data-lucide="calendar-days" class="detail-title-icon"></i>
+印鑑行事曆
+</h2>
+<p class="page-description">查看各印鑑之借用排程與預計歸還時間</p>
+</div>
+</div>
+<div class="section-divider"></div>
+<div id="sealCalendar" style="min-height: 600px;"></div>
+</div>
+</div>
+
+<!-- 歸還作業 -->
+
+<div id="returnPage" class="hidden">
+
+<div class="panel">
+
+<h2 class="detail-title">
+
+<i
+data-lucide="rotate-ccw"
+class="detail-title-icon">
+</i>
+
+歸還作業
+
+</h2>
+
+<p style="margin:10px 0 20px;color:#64748b;">
+目前尚未歸還之印鑑借用案件
+</p>
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+<tr>
+<th>印鑑</th>
+<th>借用人</th>
+<th>部門</th>
+<th>計畫編號</th>
+<th>表單編號</th>
+<th>用途</th>
+<th>借用時間</th>
+<th>操作</th>
+</tr>
+</thead>
+
+<tbody id="returnTable"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+<!-- 借用紀錄 -->
+
+<div id="historyPage" class="hidden">
+
+<div class="panel">
+
+<div class="page-heading">
+
+<div class="page-heading-main">
+
+<h2 class="detail-title">
+
+<i
+data-lucide="file-text"
+class="detail-title-icon">
+</i>
+
+借用紀錄
+
+</h2>
+
+<div class="page-description">
+查詢、篩選與匯出印鑑借用歷程
+</div>
+
+</div>
+
+</div>
+
+<div class="section-divider"></div>
+
+<div class="search-toolbar">
+
+<input
+type="text"
+id="searchInput"
+class="search-main"
+placeholder="搜尋借用人、部門、用途、計畫編號、表單編號">
+
+<div class="search-row">
+
+    <div class="filter-group">
+
+
+<div class="filter-card">
+
+    <i data-lucide="stamp"></i>
+
+    <select id="sealFilter">
+        <option value="">全部印鑑</option>
+    </select>
+
+</div>
+
+    </div>
+
+    <div class="filter-group">
+
+
+<div class="filter-card">
+
+    <i data-lucide="clipboard-list"></i>
+
+    <select id="statusFilter">
+
+        <option value="">全部狀態</option>
+        <option value="borrowed">借出中</option>
+        <option value="returned">已歸還</option>
+
+    </select>
+
+</div>
+
+    </div>
+
+<div class="filter-group">
+
+    <button
+        type="button"
+        class="filter-advanced-btn"
+        onclick="toggleAdvancedFilter()">
+
+        <i data-lucide="sliders-horizontal"></i>
+
+        <span id="filterToggleText">
+            進階篩選
+        </span>
+
+    </button>
+
+</div>
+<div class="search-actions">
+
+<span class="record-count">
+
+共
+<b id="recordCount">0</b>
+筆資料
+
+</span>
+
+<button
+type="button"
+class="btn btn-gray"
+onclick="resetHistoryFilter()">
+
+<i data-lucide="rotate-ccw"></i>
+
+重設篩選
+
+</button>
+
+<button
+type="button"
+class="btn btn-green"
+onclick="exportExcel()">
+
+<i data-lucide="file-spreadsheet"></i>
+
+匯出 Excel
+
+</button>
+
+    </div>
+
+</div>
+
+<div id="advancedFilter">
+
+    <div class="advanced-filter-layout">
+
+        <div class="advanced-number-row">
+
+            <label class="advanced-field">
+                <span>計畫編號</span>
+                <input
+                    type="text"
+                    id="projectFilter"
+                    placeholder="請輸入計畫編號">
+            </label>
+
+            <label class="advanced-field">
+                <span>表單編號</span>
+                <input
+                    type="text"
+                    id="formFilter"
+                    placeholder="請輸入表單編號">
+            </label>
+
+        </div>
+
+        <div class="advanced-date-row">
+
+            <div class="date-filter-field">
+                <span>借用日期</span>
+                <div class="date-range-inputs">
+                    <input
+                        type="date"
+                        id="borrowDateStart"
+                        aria-label="借用日期起">
+                    <span class="date-range-separator">至</span>
+                    <input
+                        type="date"
+                        id="borrowDateEnd"
+                        aria-label="借用日期迄">
+                </div>
+            </div>
+
+            <div class="date-filter-field">
+                <span>歸還日期</span>
+                <div class="date-range-inputs">
+                    <input
+                        type="date"
+                        id="returnDateStart"
+                        aria-label="歸還日期起">
+                    <span class="date-range-separator">至</span>
+                    <input
+                        type="date"
+                        id="returnDateEnd"
+                        aria-label="歸還日期迄">
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+</div>
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+
+<tr>
+<th>印鑑</th>
+<th>借用人</th>
+<th>部門</th>
+<th>計畫編號</th>
+<th>表單編號</th>
+<th>用途</th>
+<th>借用時間</th>
+<th>歸還時間</th>
+<th>狀態</th><th class="record-action-column">操作</th>
+</tr>
+
+</thead>
+
+<tbody id="recordTable"></tbody>
+
+
+</table>
+
+</div>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:15px;flex-wrap:wrap;gap:10px;">
+
+<div>
+<label>每頁顯示：</label>
+
+<select id="pageSizeSelect" onchange="changePageSize()"
+style="padding:8px;border-radius:8px;">
+
+<option value="10">10 筆</option>
+<option value="25">25 筆</option>
+<option value="50">50 筆</option>
+
+</select>
+</div>
+
+<div id="paginationArea"
+style="display:flex;gap:8px;flex-wrap:wrap;">
+</div>
+
+<button
+type="button"
+id="historyLoadMoreButton"
+class="btn btn-gray"
+onclick="loadMoreHistoryRecords()"
+hidden>
+再載入 100 筆歷史紀錄
+</button>
+
+</div>
+
+<!-- 借用紀錄頁結束 -->
+</div>
+
+</div>
+
+<div id="auditLogPage"
+class="hidden">
+
+<div class="panel">
+
+<h2 class="detail-title">
+
+<i
+data-lucide="history"
+class="detail-title-icon">
+</i>
+
+操作紀錄
+
+<span id="auditCount">
+(0筆)
+</span>
+
+</h2>
+
+<div class="audit-toolbar">
+
+<input
+type="text"
+id="auditSearch"
+placeholder="搜尋操作者、Email、印鑑或案件資料">
+
+<select id="auditActionFilter">
+<option value="">全部操作</option>
+<option value="borrow">借用</option>
+<option value="return">歸還</option>
+<option value="update">修改</option>
+<option value="delete">刪除</option>
+<option value="create">新增</option>
+<option value="permission">權限異動</option>
+</select>
+
+<label class="audit-date-field">
+<span>起日</span>
+<input type="date" id="auditDateStart">
+</label>
+
+<label class="audit-date-field">
+<span>迄日</span>
+<input type="date" id="auditDateEnd">
+</label>
+
+<button
+type="button"
+class="btn btn-gray"
+onclick="resetAuditFilter()">
+重設
+</button>
+
+</div>
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+<tr>
+<th>操作時間</th>
+<th>操作者</th>
+<th>操作</th>
+<th>類別</th>
+<th>對象</th>
+<th>摘要</th>
+<th>詳情</th>
+</tr>
+</thead>
+
+<tbody id="auditLogTable"></tbody>
+
+</table>
+
+</div>
+
+<div class="audit-pagination-row">
+
+<div>
+每頁顯示：
+<select id="auditPageSize" onchange="changeAuditPageSize()">
+<option value="10">10</option>
+<option value="25" selected>25</option>
+<option value="50">50</option>
+<option value="100">100</option>
+</select>
+</div>
+
+<div class="log-pagination-actions">
+<button
+type="button"
+id="auditLoadMoreButton"
+class="btn btn-gray"
+onclick="loadMoreAuditLogs()"
+hidden>
+再載入 100 筆
+</button>
+<div id="auditPagination"></div>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<!-- 印鑑維護 -->
+
+<div id="sealPage" class="hidden">
+
+<div class="panel">
+
+<h2 class="detail-title">
+
+<i
+data-lucide="badge-check"
+class="detail-title-icon">
+</i>
+
+印鑑維護
+
+</h2>
+
+<p class="page-description">新增印鑑並管理顯示順序</p>
+
+<div class="compact-create-row compact-create-row-two">
+
+<div class="form-group">
+<label>印鑑名稱</label>
+<input type="text" id="newSeal">
+</div>
+
+<div class="form-group">
+<label>顯示順序</label>
+<input type="number" id="newOrder">
+</div>
+
+<button type="button"
+class="btn btn-primary btn-inline"
+onclick="addSeal()">
+
+<i data-lucide="circle-plus"></i>
+
+<span>
+新增印鑑
+</span>
+
+</button>
+
+</div>
+
+<div id="sealListArea"></div>
+
+</div>
+
+</div>
+
+<!-- 部門維護 -->
+
+<div id="deptPage" class="hidden">
+
+<div class="panel">
+
+<h2 class="detail-title">
+
+<i
+data-lucide="building-2"
+class="detail-title-icon">
+</i>
+
+部門維護
+
+</h2>
+
+<p class="page-description">新增部門並管理顯示順序</p>
+
+<div class="compact-create-row compact-create-row-two">
+
+<div class="form-group">
+<label>部門名稱</label>
+<input type="text" id="newDept">
+</div>
+
+<div class="form-group">
+<label>顯示順序</label>
+<input type="number" id="newDeptOrder">
+</div>
+
+<button type="button"
+class="btn btn-primary btn-inline"
+onclick="addDepartment()">
+
+<i data-lucide="circle-plus"></i>
+
+<span>
+新增部門
+</span>
+
+</button>
+
+</div>
+
+<div id="deptListArea"></div>
+
+</div>
+
+</div>
+
+<!-- 共用人員管理 -->
+
+<div id="memberPage" class="hidden">
+
+<div class="panel">
+
+<div class="member-toolbar">
+<div>
+<h2 class="detail-title"><i data-lucide="contact-round" class="detail-title-icon"></i>人員管理</h2>
+<p class="page-description">維護行政、通用問卷與印鑑系統共用的人員主檔；印鑑系統角色仍請至「權限管理」另行設定。</p>
+</div>
+<div class="member-toolbar-actions">
+<button type="button" class="btn btn-primary btn-inline" onclick="startNewSharedMember()"><i data-lucide="user-plus"></i><span>新增人員</span></button>
+<button type="button" class="btn btn-gray" onclick="chooseMemberImport()"><i data-lucide="file-up"></i><span>匯入 Excel</span></button>
+<button type="button" class="btn btn-gray" onclick="exportSharedMembers()"><i data-lucide="file-down"></i><span>匯出名單</span></button>
+<button type="button" class="btn btn-gray" onclick="downloadMemberTemplate()"><i data-lucide="file-spreadsheet"></i><span>下載標準範本</span></button>
+<input id="memberImportInput" class="file-input-hidden" type="file" accept=".xlsx,.xls,.csv" onchange="importSharedMembers(this.files[0]);this.value=''" aria-label="匯入人員 Excel">
+</div>
+</div>
+
+<div id="memberEditor" class="member-editor hidden">
+<div class="member-editor-head"><h3 id="memberEditorTitle">新增人員</h3><span id="memberEditorBadge" class="member-mode-badge">新增模式</span></div>
+<div class="member-form-grid">
+<div class="form-group"><label for="memberDepartment">部門 *</label><select id="memberDepartment"></select></div>
+<div class="form-group"><label for="memberName">姓名 *</label><input id="memberName"></div>
+<div class="form-group"><label for="memberEmployeeNo">員工編號 *</label><input id="memberEmployeeNo"></div>
+<div class="form-group"><label for="memberGoogleEmail">Google 帳號</label><input id="memberGoogleEmail" type="email" placeholder="name@gmail.com"></div>
+<div class="form-group"><label for="memberStatus">狀態</label><select id="memberStatus"><option value="true">啟用</option><option value="false">停用</option></select></div>
+</div>
+<div class="member-editor-actions"><button id="memberSaveButton" type="button" class="btn btn-primary" onclick="saveSharedMember()">新增人員</button><button type="button" class="btn btn-gray" onclick="cancelSharedMemberEdit()">取消</button></div>
+</div>
+
+<div id="memberImportResult" class="member-import-result" role="status" aria-live="polite"></div>
+
+<div class="member-search-row">
+<div class="form-group"><label for="memberSearch">搜尋</label><input id="memberSearch" placeholder="姓名、部門、員工編號或 Google 帳號" oninput="renderSharedMemberTable()"></div>
+<div class="form-group"><label for="memberStatusFilter">狀態</label><select id="memberStatusFilter" onchange="renderSharedMemberTable()"><option value="all">全部</option><option value="active">啟用</option><option value="inactive">停用</option></select></div>
+</div>
+
+<div id="memberSummary" class="member-summary"></div>
+<div id="memberTableArea"></div>
+
+</div>
+
+</div>
+
+<!-- 權限管理 -->
+
+<div id="permissionPage" class="hidden">
+
+<div class="panel">
+
+<h2 class="detail-title">
+
+<i
+data-lucide="users"
+class="detail-title-icon">
+</i>
+
+權限管理
+
+</h2>
+
+<p class="page-description">從三套系統共用人員名單選擇成員，再設定此人於印鑑系統的獨立角色與啟用狀態</p>
+
+<div class="permission-create-card">
+
+<div class="compact-create-row compact-create-row-user">
+
+<div class="form-group">
+
+<label for="newUserMember">共用人員</label>
+
+<select id="newUserMember">
+<option value="">請選擇共用人員</option>
+</select>
+
+</div>
+
+<div class="form-group">
+
+<label for="newUserRole">印鑑系統角色</label>
+
+<select id="newUserRole" onchange="updateNewPermissionRoleHelp(this.value)">
+<option value="user">一般使用者</option>
+<option value="viewer">檢視者</option>
+<option value="admin">系統管理員</option>
+</select>
+
+<small id="newUserRoleHelp" class="permission-role-help">可辦理印鑑借用與歸還。</small>
+
+</div>
+
+<button
+class="btn btn-primary permission-submit-button"
+onclick="addWhitelistUser()">
+
+<i data-lucide="circle-plus"></i>
+
+<span>
+新增／更新權限
+</span>
+
+</button>
+
+</div>
+
+</div>
+
+<details class="permission-migration-details">
+<summary>舊權限移轉</summary>
+<div class="permission-migration-row">
+<span>僅供首次切換新版權限時使用；系統只會匯入可對應共用人員的舊白名單。</span>
+<button type="button" class="btn btn-gray btn-inline" onclick="migrateLegacySealPermissions()">匯入舊權限</button>
+</div>
+</details>
+
+<div id="userListArea"></div>
+
+</div>
+
+</div>
+
+<div id="memberImportModeMask" class="member-modal-mask" role="dialog" aria-modal="true" aria-labelledby="memberImportModeTitle">
+<section class="member-modal member-import-mode-dialog">
+<div class="member-modal-head"><div><h2 id="memberImportModeTitle">選擇人員匯入方式</h2><p>請依 Excel 的範圍選擇，避免把未列入的同仁誤判為離職。</p></div><button type="button" class="member-modal-close" onclick="closeMemberImportMode()" aria-label="關閉">×</button></div>
+<div class="member-import-mode-choices">
+<label class="member-import-mode-choice"><input type="radio" name="memberImportMode" value="partial" checked><span><b>部分名單更新</b><small>只新增或更新 Excel 內的人員，不檢查其他既有人員。</small></span></label>
+<label class="member-import-mode-choice"><input type="radio" name="memberImportMode" value="full"><span><b>完整名單核對</b><small>列出本次未出現的啟用人員，再由您決定是否停用。</small></span></label>
+</div>
+<div class="member-modal-actions"><button type="button" class="btn btn-gray" onclick="closeMemberImportMode()">取消</button><button type="button" class="btn btn-primary" onclick="continueMemberImport()">選擇 Excel</button></div>
+</section>
+</div>
+
+<div id="memberImportReviewMask" class="member-modal-mask" role="dialog" aria-modal="true" aria-labelledby="memberImportReviewTitle">
+<section class="member-modal member-import-review-dialog">
+<div class="member-modal-head"><div><h2 id="memberImportReviewTitle">確認人員名單差異</h2><p id="memberImportReviewCaption"></p></div><button type="button" class="member-modal-close" onclick="closeMemberImportReview()" aria-label="關閉">×</button></div>
+<div id="memberImportReviewBody" class="member-import-review-body"></div>
+<div class="member-modal-actions"><button type="button" class="btn btn-gray" onclick="closeMemberImportReview()">取消</button><button id="confirmMemberImportButton" type="button" class="btn btn-primary" onclick="confirmSharedMemberImport()">匯入名單</button></div>
+</section>
+</div>
+
+<div id="loginLogPage"
+class="hidden">
+
+<div class="panel">
+
+<h2 class="detail-title">
+
+<i
+data-lucide="logs"
+class="detail-title-icon">
+</i>
+
+登入紀錄
+
+<span id="loginCount">
+(0筆)
+</span>
+
+</h2>
+
+<div class="login-toolbar">
+<div class="form-group log-search-field"><label for="loginSearch">搜尋</label><input id="loginSearch" placeholder="姓名、部門、員工編號或 Email" oninput="filterLoginLogs()"></div>
+<label class="audit-date-field"><span>起日</span><input type="date" id="loginDateStart" onchange="filterLoginLogs()"></label>
+<label class="audit-date-field"><span>迄日</span><input type="date" id="loginDateEnd" onchange="filterLoginLogs()"></label>
+<button type="button" class="btn btn-gray" onclick="resetLoginFilter()"><i data-lucide="rotate-ccw"></i><span>重設</span></button>
+</div>
+
+<div class="table-wrap">
+<table class="management-table">
+
+<thead>
+
+<tr>
+<th>登入時間</th>
+<th>使用者</th>
+<th>角色</th>
+</tr>
+
+</thead>
+
+<tbody id="loginLogTable">
+
+</tbody>
+
+</table>
+</div>
+
+<div class="audit-pagination-row">
+
+<div>
+
+每頁顯示：
+
+<select
+id="loginPageSize"
+onchange="changeLoginPageSize()">
+
+<option value="20" selected>
+20
+</option>
+
+<option value="50">
+50
+</option>
+
+<option value="100">
+100
+</option>
+
+</select>
+
+</div>
+
+<div class="log-pagination-actions">
+<button
+type="button"
+id="loginLoadMoreButton"
+class="btn btn-gray"
+onclick="loadMoreLoginLogs()"
+hidden>
+再載入 100 筆
+</button>
+<div id="loginPagination"></div>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<div id="auditDetailOverlay" class="management-modal-mask" aria-hidden="true">
+<section class="management-modal" role="dialog" aria-modal="true" aria-labelledby="auditDetailTitle">
+<div class="management-modal-head">
+<div><h2 id="auditDetailTitle">操作紀錄詳情</h2><p id="auditDetailCaption">查看這筆操作的完整異動內容。</p></div>
+<button type="button" class="management-modal-close" onclick="closeAuditDetail()" aria-label="關閉"><i data-lucide="x"></i></button>
+</div>
+<div id="auditDetailBody" class="management-modal-body"></div>
+<div class="management-modal-actions"><button type="button" class="btn btn-gray" onclick="closeAuditDetail()">關閉</button></div>
+</section>
+</div>
+
+
+</div>
+
+</div>
+
+
+
+</div>
+<div id="editOverlay" class="edit-modal-overlay">
+<div class="edit-modal">
+<h2 class="detail-title">
+
+<i
+data-lucide="pencil"
+class="detail-title-icon">
+</i>
+
+編輯借用資料
+
+</h2><br>
+<input type="hidden" id="editId">
+<div class="form-group"><label>借用人</label><input id="editBorrower"></div>
+<div class="form-group"><label>部門</label><input id="editDepartment"></div>
+<div class="form-group"><label>計畫編號</label><input id="editProjectNo"></div>
+<div class="form-group"><label>表單編號</label><input id="editFormNo"></div>
+<div class="form-group"><label>預計歸還時間</label><input type="datetime-local" id="editExpectedReturnTime"></div>
+<div class="form-group"><label>用途</label><textarea id="editPurpose"></textarea></div>
+<div class="modal-footer">
+
+<button
+class="btn btn-gray btn-modal-cancel"
+onclick="closeEditModal()">
+
+取消
+
+</button>
+
+<button
+class="btn btn-green btn-modal-save"
+onclick="saveEditRecord()">
+
+儲存
+
+</button>
+
+</div>
+</div></div>
+
+<div id="pendingOverlay" class="edit-modal-overlay">
+
+<div class="edit-modal">
+
+<h2 class="detail-title">
+
+<i
+data-lucide="clock-3"
+class="detail-title-icon">
+</i>
+
+新增待借用案件
+
+</h2>
+
+<p class="modal-helper-text">先建立借用需求，正式借用時再選擇可用印鑑。</p>
+
+<div class="form-group">
+<label>承辦人</label>
+<input id="pendingBorrower" placeholder="請輸入承辦人" autocomplete="off">
+</div>
+
+<div class="form-group">
+<label>部門</label>
+<select id="pendingDepartment"></select>
+</div>
+
+<div class="form-group">
+<label>計畫編號</label>
+<input id="pendingProjectNo" placeholder="請輸入計畫編號" autocomplete="off">
+</div>
+
+<div class="form-group">
+<label>表單編號</label>
+<input id="pendingFormNo" placeholder="請輸入表單編號" autocomplete="off">
+</div>
+
+<div class="form-group">
+<label>預計借用時間</label>
+<input type="datetime-local" id="pendingExpectedBorrowTime">
+</div>
+
+<div class="form-group">
+<label>預計歸還時間</label>
+<input type="datetime-local" id="pendingExpectedReturnTime">
+</div>
+
+<div class="form-group">
+<label>用途</label>
+<textarea id="pendingPurpose" rows="4" placeholder="請簡述借用用途"></textarea>
+</div>
+
+<div class="modal-footer">
+
+<button
+class="btn btn-gray btn-modal-cancel"
+onclick="closePendingModal()">
+
+取消
+
+</button>
+
+<button
+class="btn btn-green btn-modal-save"
+onclick="savePendingRecord()">
+
+儲存
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<div id="borrowConfirmOverlay" class="edit-modal-overlay">
+
+<div class="edit-modal">
+
+<h2 class="detail-title">
+
+<i
+data-lucide="clipboard-check"
+class="detail-title-icon">
+</i>
+
+確認借用資料
+
+</h2>
+
+<p style="margin:12px 0 18px;color:#64748b;">
+請確認以下資料正確後再送出借用。
+</p>
+
+<div class="return-confirm-grid">
+
+<div class="return-confirm-item">
+<div class="return-confirm-label">印鑑</div>
+<div class="return-confirm-value" id="borrowConfirmSeal">-</div>
+</div>
+
+<div class="return-confirm-item">
+<div class="return-confirm-label">借用人</div>
+<div class="return-confirm-value" id="borrowConfirmBorrower">-</div>
+</div>
+
+<div class="return-confirm-item">
+<div class="return-confirm-label">部門</div>
+<div class="return-confirm-value" id="borrowConfirmDepartment">-</div>
+</div>
+
+<div class="return-confirm-item">
+<div class="return-confirm-label">計畫編號</div>
+<div class="return-confirm-value" id="borrowConfirmProjectNo">-</div>
+</div>
+
+<div class="return-confirm-item">
+<div class="return-confirm-label">表單編號</div>
+<div class="return-confirm-value" id="borrowConfirmFormNo">-</div>
+</div>
+
+<div class="return-confirm-item">
+<div class="return-confirm-label">預計歸還時間</div>
+<div class="return-confirm-value" id="borrowConfirmExpectedReturnTime">-</div>
+</div>
+
+<div class="return-confirm-item return-confirm-purpose">
+<div class="return-confirm-label">用途</div>
+<div class="return-confirm-value" id="borrowConfirmPurpose">-</div>
+</div>
+
+</div>
+
+<div class="modal-footer">
+
+<button
+class="btn btn-gray btn-modal-cancel"
+onclick="closeBorrowConfirmModal()">
+
+返回修改
+
+</button>
+
+<button
+id="confirmBorrowButton"
+class="btn btn-primary btn-modal-save"
+onclick="confirmBorrowSeal()">
+
+確認借用
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<div id="returnConfirmOverlay" class="edit-modal-overlay">
+
+<div class="edit-modal">
+
+<h2 class="detail-title">
+
+<i
+data-lucide="rotate-ccw"
+class="detail-title-icon">
+</i>
+
+確認歸還印鑑
+
+</h2>
+
+<p style="margin:12px 0 18px;color:#64748b;">
+請確認以下借用資料，歸還後將無法再編輯。
+</p>
+
+<div class="return-confirm-grid">
+
+<div class="return-confirm-item">
+<div class="return-confirm-label">印鑑</div>
+<div class="return-confirm-value" id="returnConfirmSeal">-</div>
+</div>
+
+<div class="return-confirm-item">
+<div class="return-confirm-label">借用人</div>
+<div class="return-confirm-value" id="returnConfirmBorrower">-</div>
+</div>
+
+<div class="return-confirm-item">
+<div class="return-confirm-label">部門</div>
+<div class="return-confirm-value" id="returnConfirmDepartment">-</div>
+</div>
+
+<div class="return-confirm-item">
+<div class="return-confirm-label">借用時間</div>
+<div class="return-confirm-value" id="returnConfirmTime">-</div>
+</div>
+
+<div class="return-confirm-item return-confirm-purpose">
+<div class="return-confirm-label">用途</div>
+<div class="return-confirm-value" id="returnConfirmPurpose">-</div>
+</div>
+
+</div>
+
+<div class="modal-footer">
+
+<button
+class="btn btn-gray btn-modal-cancel"
+onclick="closeReturnModal()">
+
+取消
+
+</button>
+
+<button
+id="confirmReturnButton"
+class="btn btn-green btn-modal-save"
+onclick="confirmReturnSeal()">
+
+確認歸還
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+
+
+
+
+
+    <script src="./app.js?v=20260719-v157-auth-isolation"></script>
+
+</body>
+</html>
