@@ -2217,7 +2217,8 @@ borrower:item.borrower || "",
 department:item.department || "",
 projectNo:item.projectNo || "",
 formNo:item.formNo || "",
-purpose:item.purpose || ""
+purpose:item.purpose || "",
+expectedReturnTime: item.expectedReturnTime || null
 };
 
 selectedBorrowSeal = "";
@@ -5237,8 +5238,10 @@ function loadCalendarEvents() {
     }
 
     (typeof records !== 'undefined' ? records : []).forEach(r => {
+        if(r.returnTime) return; // 真正歸還後就不應該再顯示在行事曆了
+
         let startStr = toSafeDateString(r.createdAt);
-        let endStr = toSafeDateString(r.returnTime) || toSafeDateString(r.expectedReturnTime);
+        let endStr = toSafeDateString(r.expectedReturnTime);
         
         if (startStr) {
             if(!endStr) {
@@ -5248,16 +5251,18 @@ function loadCalendarEvents() {
             }
             events.push({
                 id: 'record_' + r.id,
-                title: '[' + (r.returnTime ? '已歸還' : '借出中') + '] ' + r.seal + ' - ' + r.borrower,
+                title: '[借出中] ' + r.seal + ' - ' + r.borrower,
                 start: startStr,
                 end: endStr,
-                color: r.returnTime ? '#10b981' : '#ef4444',
+                color: '#ef4444',
                 extendedProps: {
                     seal: r.seal,
                     borrower: r.borrower,
-                    status: r.returnTime ? '已歸還' : '借出中'
+                    status: '借出中'
                 }
             });
+        }
+    });
         }
     });
 
