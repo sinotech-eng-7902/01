@@ -1522,6 +1522,7 @@ id:docSnap.id,
 });
 
 renderPendingTable();
+if(typeof loadCalendarEvents === 'function') loadCalendarEvents();
 
 }
 
@@ -1574,7 +1575,7 @@ el = document.querySelector(
 
 document
 .querySelectorAll(
-"#borrowPage,#pendingPage,#returnPage,#historyPage,#sealPage,#deptPage,#memberPage,#permissionPage,#loginLogPage,#auditLogPage"
+"#borrowPage,#pendingPage,#returnPage,#historyPage,#sealPage,#deptPage,#memberPage,#permissionPage,#loginLogPage,#auditLogPage,#calendarPage"
 )
 .forEach(page=>page.classList.add("hidden"));
 
@@ -3799,6 +3800,7 @@ renderTable();
 renderReturnTable();
 renderStatus();
 updateKPI();
+if(typeof loadCalendarEvents === 'function') loadCalendarEvents();
 
 }
 
