@@ -2549,7 +2549,12 @@ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.ge
 }
 function parseDateTimeLocal(value){
 if(!value) return null;
-const d = new Date(value);
+// Ensure value has seconds if it's from datetime-local
+let safeValue = value;
+if (safeValue.length === 16 && safeValue.includes('T')) {
+    safeValue += ':00';
+}
+const d = new Date(safeValue);
 if(isNaN(d.getTime())) return null;
 return Timestamp.fromDate(d);
 }
@@ -5226,33 +5231,108 @@ function loadCalendarEvents() {
     if (!sealCalendar) return;
     const events = [];
     
-    // 1. 實際借出的紀錄
+    function toSafeDateString(val) {
+        if(!val) return null;
+        let d;
+        if(val.seconds) d = new Date(val.seconds * 1000);
+        else if (val instanceof Date) d = val;
+        else d = new Date(val);
+        if(isNaN(d.getTime())) return null;
+        const pad = n => String(n).padStart(2, '0');
+        return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':00';
+    }
+
     (typeof records !== 'undefined' ? records : []).forEach(r => {
-        let start = r.createdAt;
-        if(start && start.seconds) start = new Date(start.seconds * 1000);
-        else if (typeof start === 'string' || typeof start === 'number') start = new Date(start);
+        let startStr = toSafeDateString(r.createdAt);
+        let endStr = toSafeDateString(r.returnTime) || toSafeDateString(r.expectedReturnTime);
         
-        let end = null;
-        if(r.returnTime) {
-            end = r.returnTime;
-            if(end && end.seconds) end = new Date(end.seconds * 1000);
-            else if (typeof end === 'string' || typeof end === 'number') end = new Date(end);
-        } else if (r.expectedReturnTime) {
-            end = r.expectedReturnTime;
-            if(end && end.seconds) end = new Date(end.seconds * 1000);
-            else if (typeof end === 'string' || typeof end === 'number') end = new Date(end);
-        }
-        
-        if (start && !isNaN(start.getTime())) {
-            // 如果沒有結束時間，預設為開始時間加一小時
-            if(!end || isNaN(end.getTime())) {
-                end = new Date(start.getTime() + 60*60*1000);
+        if (startStr) {
+            if(!endStr) {
+                let d = new Date(startStr);
+                d.setHours(d.getHours() + 1);
+                endStr = toSafeDateString(d);
             }
             events.push({
                 id: 'record_' + r.id,
-                title: `[${r.returnTime ? '已歸還' : '借出中'}] ${r.seal} - ${r.borrower}`,
-                start: start,
-                end: end,
+                title: '[' + (r.returnTime ? '已歸還' : '借出中') + '] ' + r.seal + ' - ' + r.borrower,
+                start: startStr,
+                end: endStr,
+                color: r.returnTime ? '#10b981' : '#ef4444',
+                extendedProps: {
+                    seal: r.seal,
+                    borrower: r.borrower,
+                    status: r.returnTime ? '已歸還' : '借出中'
+                }
+            });
+        }
+    });
+
+    (typeof pendingRecords !== 'undefined' ? pendingRecords : []).forEach(p => {
+        let startStr = toSafeDateString(p.expectedBorrowTime);
+        let endStr = toSafeDateString(p.expectedReturnTime);
+        
+        if (!startStr && endStr) {
+             let d = new Date(endStr);
+             d.setHours(d.getHours() - 1);
+             startStr = toSafeDateString(d);
+        }
+        
+        if (startStr) {
+            if(!endStr) {
+                let d = new Date(startStr);
+                d.setHours(d.getHours() + 1);
+                endStr = toSafeDateString(d);
+            }
+            events.push({
+                id: 'pending_' + p.id,
+                title: '[預約待借用] ' + p.borrower,
+                start: startStr,
+                end: endStr,
+                color: '#3b82f6',
+                extendedProps: {
+                    seal: '尚未選擇 (預約中)',
+                    borrower: p.borrower,
+                    status: '待借用'
+                }
+            });
+        }
+    });
+    
+    sealCalendar.removeAllEvents();
+    const oldSources = sealCalendar.getEventSources();
+    oldSources.forEach(s => s.remove());
+    sealCalendar.addEventSource(events);
+}
+function toSafeDateString(val) {
+        if(!val) return null;
+        let d;
+        if(val.seconds) d = new Date(val.seconds * 1000);
+        else if (val instanceof Date) d = val;
+        else d = new Date(val);
+        if(isNaN(d.getTime())) return null;
+        // FullCalendar prefers ISO strings (YYYY-MM-DDTHH:mm:ss)
+        // We will output a format like '2026-08-10T10:00:00' in local time
+        const pad = n => String(n).padStart(2, '0');
+        return \-\-\T\:\:00\;
+    }
+
+    // 1. 實際借出的紀錄
+    (typeof records !== 'undefined' ? records : []).forEach(r => {
+        let startStr = toSafeDateString(r.createdAt);
+        let endStr = toSafeDateString(r.returnTime) || toSafeDateString(r.expectedReturnTime);
+        
+        if (startStr) {
+            if(!endStr) {
+                // Default +1 hr
+                let d = new Date(startStr);
+                d.setHours(d.getHours() + 1);
+                endStr = toSafeDateString(d);
+            }
+            events.push({
+                id: 'record_' + r.id,
+                title: \[\] \ - \,
+                start: startStr,
+                end: endStr,
                 color: r.returnTime ? '#10b981' : '#ef4444',
                 extendedProps: {
                     seal: r.seal,
@@ -5265,35 +5345,37 @@ function loadCalendarEvents() {
 
     // 2. 待借用 (預約) 的紀錄
     (typeof pendingRecords !== 'undefined' ? pendingRecords : []).forEach(p => {
-        if(p.expectedBorrowTime) {
-            let start = p.expectedBorrowTime;
-            if(start && start.seconds) start = new Date(start.seconds * 1000);
-            else if (typeof start === 'string' || typeof start === 'number') start = new Date(start);
-
-            let end = p.expectedReturnTime;
-            if(end && end.seconds) end = new Date(end.seconds * 1000);
-            else if (typeof end === 'string' || typeof end === 'number') end = new Date(end);
-            
-            if (start && !isNaN(start.getTime())) {
-                if(!end || isNaN(end.getTime())) {
-                    end = new Date(start.getTime() + 60*60*1000);
-                }
-                events.push({
-                    id: 'pending_' + p.id,
-                    title: `[預約待借用] ${p.borrower}`,
-                    start: start,
-                    end: end,
-                    color: '#3b82f6',
-                    extendedProps: {
-                        seal: '尚未選擇 (預約中)',
-                        borrower: p.borrower,
-                        status: '待借用'
-                    }
-                });
+        let startStr = toSafeDateString(p.expectedBorrowTime);
+        let endStr = toSafeDateString(p.expectedReturnTime);
+        
+        // Even if expectedBorrowTime is not set, let's try to map it if they only set expectedReturnTime? 
+        // User said they set both.
+        if (startStr) {
+            if(!endStr) {
+                let d = new Date(startStr);
+                d.setHours(d.getHours() + 1);
+                endStr = toSafeDateString(d);
             }
+            events.push({
+                id: 'pending_' + p.id,
+                title: \[預約待借用] \,
+                start: startStr,
+                end: endStr,
+                color: '#3b82f6',
+                extendedProps: {
+                    seal: '尚未選擇 (預約中)',
+                    borrower: p.borrower,
+                    status: '待借用'
+                }
+            });
         }
     });
     
+    // Clear safely
+    const oldSources = sealCalendar.getEventSources();
+    oldSources.forEach(s => s.remove());
     sealCalendar.removeAllEvents();
+    
     sealCalendar.addEventSource(events);
 }
+
