@@ -3565,6 +3565,7 @@ department:data.department,
 projectNo:data.projectNo,
 formNo:data.formNo,
 purpose:data.purpose,
+expectedReturnTime: data.expectedReturnTime || null,
 borrowTime:new Date(),
 returnTime:null
 
@@ -5238,9 +5239,9 @@ function loadCalendarEvents() {
     }
 
     (typeof records !== 'undefined' ? records : []).forEach(r => {
-        if(r.returnTime) return; // 真正歸還後就不應該再顯示在行事曆了
+        if(r.returnTime) return;
 
-        let startStr = toSafeDateString(r.createdAt);
+        let startStr = toSafeDateString(r.borrowTime || r.createdAt);
         let endStr = toSafeDateString(r.expectedReturnTime);
         
         if (startStr) {
@@ -5265,6 +5266,8 @@ function loadCalendarEvents() {
     });
 
     (typeof pendingRecords !== 'undefined' ? pendingRecords : []).forEach(p => {
+        if(p.status === '已借出' || p.status === '已取消' || p.status === '已拒絕') return;
+
         let startStr = toSafeDateString(p.expectedBorrowTime);
         let endStr = toSafeDateString(p.expectedReturnTime);
         
