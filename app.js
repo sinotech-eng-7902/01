@@ -5239,10 +5239,10 @@ function loadCalendarEvents() {
     }
 
     (typeof records !== 'undefined' ? records : []).forEach(r => {
-        if(r.returnTime) return;
+        const isReturned = !!r.returnTime;
 
         let startStr = toSafeDateString(r.borrowTime || r.createdAt);
-        let endStr = toSafeDateString(r.expectedReturnTime);
+        let endStr = isReturned ? toSafeDateString(r.returnTime) : toSafeDateString(r.expectedReturnTime);
         
         if (startStr) {
             if(!endStr) {
@@ -5252,14 +5252,17 @@ function loadCalendarEvents() {
             }
             events.push({
                 id: 'record_' + r.id,
-                title: '[借出中] ' + r.seal + ' - ' + r.borrower,
+                title: '[' + (isReturned ? '已歸還' : '借出中') + '] ' + r.seal + ' - ' + r.borrower,
                 start: startStr,
                 end: endStr,
-                color: '#ef4444',
+                backgroundColor: isReturned ? '#f1f5f9' : '#ef4444',
+                borderColor: isReturned ? '#cbd5e1' : '#ef4444',
+                textColor: isReturned ? '#64748b' : '#ffffff',
+                classNames: isReturned ? ['fc-event-past'] : [],
                 extendedProps: {
                     seal: r.seal,
                     borrower: r.borrower,
-                    status: '借出中'
+                    status: isReturned ? '已歸還' : '借出中'
                 }
             });
         }
