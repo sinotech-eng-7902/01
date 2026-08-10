@@ -5216,6 +5216,11 @@ function initSealCalendar() {
             center: 'title',
             right: 'dayGridMonth,timeGridWeek,listWeek'
         },
+        views: {
+            dayGridMonth: {
+                displayEventTime: false
+            }
+        },
         buttonText: {
             today: '今天',
             month: '月視表',
@@ -5225,7 +5230,8 @@ function initSealCalendar() {
         height: 'auto',
         events: [],
         eventClick: function(info) {
-            alert(`借用詳情：\n印鑑：${info.event.extendedProps.seal}\n借用人：${info.event.extendedProps.borrower}\n狀態：${info.event.extendedProps.status}`);
+            const props = info.event.extendedProps;
+            alert(`借用詳情：\n印鑑：${props.seal}\n借用人：${props.borrower}\n狀態：${props.status}\n借出時間：${props.borrowTime || '無'}\n歸還時間：${props.returnTime || '無'}`);
         }
     });
     sealCalendar.render();
@@ -5270,7 +5276,9 @@ function loadCalendarEvents() {
                 extendedProps: {
                     seal: r.seal,
                     borrower: r.borrower,
-                    status: isReturned ? '已歸還' : '借出中'
+                    status: isReturned ? '已歸還' : '借出中',
+                    borrowTime: formatDate(r.borrowTime || r.createdAt),
+                    returnTime: r.returnTime ? formatDate(r.returnTime) : (r.expectedReturnTime ? formatDate(r.expectedReturnTime) + " (預計)" : "未定")
                 }
             });
         }
