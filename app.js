@@ -5214,13 +5214,9 @@ function initSealCalendar() {
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
-            right: 'dayGridMonth,timeGridWeek,listWeek'
+            right: 'dayGridMonth,dayGridWeek,listWeek'
         },
-        views: {
-            dayGridMonth: {
-                displayEventTime: false
-            }
-        },
+        displayEventTime: false,
         buttonText: {
             today: '今天',
             month: '月視表',
