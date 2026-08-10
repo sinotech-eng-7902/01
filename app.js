@@ -1597,6 +1597,9 @@ localStorage.setItem(
 if(pageId === "historyPage" && !historyLoaded){
 loadHistoryRecords(true);
 }
+if(pageId === "calendarPage" && !historyLoaded){
+loadHistoryRecords(true);
+}
 
 if(pageId === "permissionPage" && isAdminRole()){
 loadUsers();
@@ -3863,7 +3866,7 @@ historyLoaded = true;
 const activeRecords = records.filter(record=>!record.returnTime);
 records = [...historyRecords,...activeRecords];
 renderTable();
-
+if(typeof loadCalendarEvents === 'function') loadCalendarEvents();
 }catch(error){
 
 console.error("讀取歷史借用紀錄失敗",error);
