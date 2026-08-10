@@ -3233,42 +3233,38 @@ document.getElementById("pendingTransferBanner").classList.add("hidden");
 resetBorrowForm();
 }
 
-function selectBorrowSeal(sealName){
-const active = records.find(record=>
-record.seal===sealName && !record.returnTime
-);
+function selectBorrowSeal(sealName, forceNew = false){
+  const activeRecords = records.filter(record=>
+    record.seal===sealName && !record.returnTime
+  );
+  
+  selectedBorrowSeal = sealName;
 
-selectedBorrowSeal = sealName;
-
-if(active){
-if(borrowPanelMode === "new"){
-borrowEntryDraft = getBorrowFormData();
-
-if(currentPendingIndex){
-pendingTransferDraft = {...borrowEntryDraft};
-}
-}
-
-selectedBorrowRecordId = active.id;
-borrowPanelMode = "read";
-populateBorrowForm(active);
-}else{
-selectedBorrowRecordId = null;
-borrowPanelMode = "new";
-
-if(currentPendingIndex && pendingTransferDraft){
-populateBorrowForm(pendingTransferDraft);
-}else if(document.getElementById("borrower").disabled){
-populateBorrowForm(
-borrowEntryDraft || {borrower:""}
-);
-}
-
-document.getElementById("seal").value = sealName;
-}
-
-renderBorrowPanelState();
-renderStatus();
+  if (currentPendingIndex || forceNew) {
+      selectedBorrowRecordId = null;
+      borrowPanelMode = "new";
+      
+      if(currentPendingIndex && pendingTransferDraft){
+          populateBorrowForm(pendingTransferDraft);
+      }else if(document.getElementById("borrower").disabled){
+          populateBorrowForm(borrowEntryDraft || {borrower:""});
+      }
+      document.getElementById("seal").value = sealName;
+  } else if(activeRecords.length > 0){
+      selectedBorrowRecordId = activeRecords[0].id;
+      borrowPanelMode = "read";
+      populateBorrowForm(activeRecords[0]);
+  } else {
+      selectedBorrowRecordId = null;
+      borrowPanelMode = "new";
+      if(document.getElementById("borrower").disabled){
+          populateBorrowForm(borrowEntryDraft || {borrower:""});
+      }
+      document.getElementById("seal").value = sealName;
+  }
+  
+  renderBorrowPanelState();
+  renderStatus();
 }
 
 function renderBorrowPanelState(){
@@ -3282,7 +3278,8 @@ const editButton = document.getElementById("editBorrowedButton");
 const saveButton = document.getElementById("saveBorrowedButton");
 const cancelButton = document.getElementById("cancelBorrowEditButton");
 
-[confirmButton,editButton,saveButton,cancelButton]
+const concurrentButton = document.getElementById("concurrentBorrowButton");
+[confirmButton,editButton,saveButton,cancelButton,concurrentButton].filter(Boolean)
 .forEach(button=>button.classList.add("hidden"));
 
 if(selectedBorrowRecordId){
@@ -3295,18 +3292,25 @@ renderBorrowPanelState();
 return;
 }
 
-title.textContent = borrowPanelMode === "edit"
-? "編輯借用資料"
-: "目前借用資料";
-description.textContent = borrowPanelMode === "edit"
-? "修改完成後請儲存變更"
-: "此印鑑目前借出中，資料預設不可修改";
+const activeRecords = records.filter(record=>record.seal===active.seal && !record.returnTime);
 
-badge.textContent = borrowPanelMode === "edit" ? "編輯中" : "借出中";
-badge.className = borrowPanelMode === "edit"
-? "badge badge-blue"
-: "badge badge-red";
+badge.className = "badge badge-red";
+badge.textContent = "借出中";
+badge.classList.remove("hidden");
 
+let switcherHtml = '';
+if (activeRecords.length > 1) {
+    switcherHtml = `<div class="meta-item" style="width:100%; margin-bottom:10px; background:#e0e7ff; padding:10px; border-radius:6px; color:#3730a3; font-weight:bold; display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
+        <i data-lucide="layers"></i> 同印鑑有 ${activeRecords.length} 筆借出中：
+        <select onchange="switchActiveRecord(this.value)" style="flex:1; padding:6px; border-radius:4px; border:1px solid #c7d2fe; font-size:14px; background:white;">
+            ${activeRecords.map((r, idx) => `<option value="${r.id}" ${r.id === selectedBorrowRecordId ? 'selected' : ''}>[${idx+1}] ${escapeHtml(r.borrower)}</option>`).join('')}
+        </select>
+    </div>`;
+}
+
+meta.innerHTML = switcherHtml + `
+<div class="meta-item"><i data-lucide="calendar"></i> 借出時間：${formatDate(active.borrowTime||active.createdAt)}</div>
+`;
 meta.classList.remove("hidden");
 meta.innerHTML = `
 <div class="borrowed-meta-item">
@@ -3334,6 +3338,8 @@ cancelButton.textContent = "返回待借用案件";
 cancelButton.classList.remove("hidden");
 }else if(!isViewerRole()){
 editButton.classList.remove("hidden");
+if(concurrentButton) concurrentButton.classList.remove("hidden");
+if(concurrentButton) concurrentButton.classList.remove("hidden");
 }
 
 lucide.createIcons();
@@ -4087,39 +4093,38 @@ const visibleSeals = sealList.filter(seal=>
 list.innerHTML = "";
 
 visibleSeals.forEach(seal=>{
-const active = records.find(record=>
-record.seal===seal.name && !record.returnTime
-);
+  const activeRecords = records.filter(record=>
+  record.seal===seal.name && !record.returnTime
+  );
+  const active = activeRecords.length > 0;
 
-const row = document.createElement("button");
-row.type = "button";
-row.className = [
-"seal-status-row",
-active ? "is-borrowed" : "is-available",
-selectedBorrowSeal===seal.name ? "selected" : ""
-].filter(Boolean).join(" ");
-row.setAttribute("data-seal",seal.name);
-row.onclick = ()=>selectBorrowSeal(seal.name);
+  const row = document.createElement("button");
+  row.type = "button";
+  row.className = [
+  "seal-status-row",
+  active ? "is-borrowed" : "is-available",
+  selectedBorrowSeal===seal.name ? "selected" : ""
+  ].filter(Boolean).join(" ");
+  row.setAttribute("data-seal",seal.name);
+  row.onclick = ()=>selectBorrowSeal(seal.name);
 
-row.innerHTML = `
-<div class="seal-row-main">
-<div class="seal-row-name">${seal.name}</div>
-${active
-? `<div class="seal-row-person">借用人：${active.borrower || "-"}</div>`
-: ""}
-</div>
-<div class="seal-row-status-wrap">
-<div class="seal-row-status">
-${active ? "借出中" : "可借用"}
-</div>
-${selectedBorrowSeal===seal.name && !active
-? `<span class="seal-row-check"><i data-lucide="check"></i></span>`
-: active
-? `<i data-lucide="chevron-right"></i>`
-: `<i data-lucide="chevron-right"></i>`}
-</div>`;
+  row.innerHTML = `
+  <div class="seal-row-main">
+  <div class="seal-row-name">${seal.name}</div>
+  ${active
+  ? `<div class="seal-row-person">借用人：${escapeHtml(activeRecords.map(r=>r.borrower).join(', '))}</div>`
+  : ""}
+  </div>
+  <div class="seal-row-status-wrap">
+  <div class="seal-row-status">
+  ${active ? "借出中" : "可借用"}
+  </div>
+  ${selectedBorrowSeal===seal.name && !active
+  ? `<span class="seal-row-check"><i data-lucide="check"></i></span>`
+  : `<i data-lucide="chevron-right"></i>`}
+  </div>`;
 
-list.appendChild(row);
+  list.appendChild(row);
 });
 
 if(!visibleSeals.length){
@@ -5313,3 +5318,13 @@ alert(`系統初始化失敗：${error.message}`);
 
 });
 
+
+window.switchActiveRecord = function(recordId) {
+    selectedBorrowRecordId = recordId;
+    const active = records.find(record=>record.id===selectedBorrowRecordId);
+    if(active) {
+        borrowPanelMode = "read";
+        populateBorrowForm(active);
+    }
+    renderBorrowPanelState();
+};

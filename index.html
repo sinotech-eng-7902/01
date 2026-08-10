@@ -283,6 +283,7 @@ type="button"
 onclick="saveInlineBorrowEdit()">
 儲存變更
 </button>
+<button id="concurrentBorrowButton" class="btn btn-primary borrow-main-action hidden" type="button" onclick="selectBorrowSeal(selectedBorrowSeal, true)" style="background:#6366f1; border-color:#6366f1;"><i data-lucide="plus-circle"></i> 新增併同借用</button>
 
 <button
 id="confirmBorrowMainButton"
@@ -1434,7 +1435,7 @@ onclick="confirmReturnSeal()">
 
 
 
-    <script src="./app.js?v=20260810-calendar-past-event"></script>
+    <script src="./app.js?v=20260810-concurrent-borrow"></script>
 
 </body>
 </html>
