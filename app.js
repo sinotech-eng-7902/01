@@ -5260,9 +5260,9 @@ function loadCalendarEvents() {
                 title: '[' + (isReturned ? '已歸還' : '借出中') + '] ' + r.seal + ' - ' + r.borrower,
                 start: startStr,
                 end: endStr,
-                backgroundColor: isReturned ? '#f1f5f9' : '#ef4444',
-                borderColor: isReturned ? '#cbd5e1' : '#ef4444',
-                textColor: isReturned ? '#64748b' : '#ffffff',
+                backgroundColor: isReturned ? '#d1fae5' : '#ef4444',
+                borderColor: isReturned ? '#6ee7b7' : '#ef4444',
+                textColor: isReturned ? '#065f46' : '#ffffff',
                 classNames: isReturned ? ['fc-event-past'] : [],
                 extendedProps: {
                     seal: r.seal,
