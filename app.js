@@ -235,6 +235,7 @@ let borrowEntryDraft = null;
 let selectedBorrowSeal = "";
 let selectedBorrowRecordId = null;
 let borrowPanelMode = "new";
+let concurrentBorrowMode = false;
 let editingPendingId = null;
 
 let loginLogs = [];
@@ -1331,8 +1332,32 @@ await loadMemberManagement(true);
 if(isAdminRole()) await loadUsers(true);
 }
 
+const externalScriptLoads = new Map();
+
+function loadExternalScript(src,isReady){
+if(isReady()) return Promise.resolve();
+if(externalScriptLoads.has(src)) return externalScriptLoads.get(src);
+const promise = new Promise((resolve,reject)=>{
+const script = document.createElement("script");
+script.src = src;
+script.async = true;
+script.onload = ()=>isReady() ? resolve() : reject(new Error(`元件載入後仍無法使用：${src}`));
+script.onerror = ()=>reject(new Error(`無法載入外部元件：${src}`));
+document.head.appendChild(script);
+}).catch(error=>{
+externalScriptLoads.delete(src);
+throw error;
+});
+externalScriptLoads.set(src,promise);
+return promise;
+}
+
 function xlsxReady(){
 return typeof XLSX !== "undefined" && XLSX?.utils && typeof XLSX.writeFile === "function";
+}
+
+async function ensureXlsx(){
+await loadExternalScript("https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js",xlsxReady);
 }
 
 function memberWorkbook(rows,sheetName="人員名單"){
@@ -1343,13 +1368,13 @@ XLSX.utils.book_append_sheet(workbook,sheet,sheetName);
 return workbook;
 }
 
-function downloadMemberTemplate(){
-if(!xlsxReady()) return alert("Excel 元件尚未載入完成，請重新整理後再試");
+async function downloadMemberTemplate(){
+try{await ensureXlsx();}catch(error){console.error(error);return alert("Excel 元件載入失敗，請確認網路後再試");}
 XLSX.writeFile(memberWorkbook([{"部門":"行政部","姓名":"王小明","員工編號":"7901","Google帳號":"example@gmail.com","狀態":"啟用"}],"匯入範本"),"人員匯入標準範本.xlsx");
 }
 
-function exportSharedMembers(){
-if(!xlsxReady()) return alert("Excel 元件尚未載入完成，請重新整理後再試");
+async function exportSharedMembers(){
+try{await ensureXlsx();}catch(error){console.error(error);return alert("Excel 元件載入失敗，請確認網路後再試");}
 const rows = memberList.map(member=>({"部門":memberDepartmentName(member),"姓名":member.name || "","員工編號":memberEmployeeNo(member),"Google帳號":memberGoogleEmail(member),"狀態":member.active === false ? "停用" : "啟用"}));
 XLSX.writeFile(memberWorkbook(rows),"共用人員名單.xlsx");
 }
@@ -1428,7 +1453,7 @@ updateMemberImportConfirmLabel();
 
 async function importSharedMembers(file){
 if(!file) return;
-if(!xlsxReady()) return alert("Excel 元件尚未載入完成，請重新整理後再試");
+try{await ensureXlsx();}catch(error){console.error(error);return alert("Excel 元件載入失敗，請確認網路後再試");}
 const result = document.getElementById("memberImportResult");
 result.className = "member-import-result";
 result.textContent = `正在讀取 ${file.name}...`;
@@ -1597,10 +1622,6 @@ localStorage.setItem(
 if(pageId === "historyPage" && !historyLoaded){
 loadHistoryRecords(true);
 }
-if(pageId === "calendarPage" && !historyLoaded){
-loadHistoryRecords(true);
-}
-
 if(pageId === "permissionPage" && isAdminRole()){
 loadUsers();
 }
@@ -1902,6 +1923,8 @@ department,
 projectNo,
 formNo,
 purpose,
+expectedBorrowTime:expectedBorrowTime || null,
+expectedReturnTime:expectedReturnTime || null,
 status:before?.status || "待借用"
 }
 });
@@ -1926,6 +1949,8 @@ department,
 projectNo,
 formNo,
 purpose,
+expectedBorrowTime:expectedBorrowTime || null,
+expectedReturnTime:expectedReturnTime || null,
 status:"待借用"
 }
 });
@@ -2227,6 +2252,7 @@ expectedReturnTime: item.expectedReturnTime || null
 selectedBorrowSeal = "";
 selectedBorrowRecordId = null;
 borrowPanelMode = "new";
+concurrentBorrowMode = false;
 
 const borrowMenu =
 document.querySelectorAll(".menu-item")[0];
@@ -3148,6 +3174,7 @@ pendingTransferDraft = null;
 borrowEntryDraft = null;
 selectedBorrowRecordId = null;
 borrowPanelMode = "new";
+concurrentBorrowMode = false;
 
 const firstAvailable = sealList.find(seal=>
 !records.some(record=>record.seal===seal.name && !record.returnTime)
@@ -3172,16 +3199,14 @@ renderStatus();
 
 function getBorrowFormData(){
 const ert = parseDateTimeLocal(document.getElementById("expectedReturnTime")?.value);
-const res = {
+return {
 borrower:document.getElementById("borrower").value.trim(),
 department:document.getElementById("department").value,
 projectNo:document.getElementById("projectNo").value.trim(),
 formNo:document.getElementById("formNo").value.trim(),
-purpose:document.getElementById("purpose").value.trim()
+purpose:document.getElementById("purpose").value.trim(),
+expectedReturnTime:ert
 };
-if(ert) res.expectedReturnTime = ert;
-else res.expectedReturnTime = deleteField();
-return res;
 }
 
 function populateBorrowForm(data={}){
@@ -3236,38 +3261,45 @@ document.getElementById("pendingTransferBanner").classList.add("hidden");
 resetBorrowForm();
 }
 
-function selectBorrowSeal(sealName, forceNew = false){
-  const activeRecords = records.filter(record=>
-    record.seal===sealName && !record.returnTime
-  );
-  
-  selectedBorrowSeal = sealName;
+function selectBorrowSeal(sealName){
+const activeRecords = records.filter(record=>
+record.seal===sealName && !record.returnTime
+);
 
-  if (currentPendingIndex || forceNew) {
-      selectedBorrowRecordId = null;
-      borrowPanelMode = "new";
-      
-      if(currentPendingIndex && pendingTransferDraft){
-          populateBorrowForm(pendingTransferDraft);
-      }else if(document.getElementById("borrower").disabled){
-          populateBorrowForm(borrowEntryDraft || {borrower:""});
-      }
-      document.getElementById("seal").value = sealName;
-  } else if(activeRecords.length > 0){
-      selectedBorrowRecordId = activeRecords[0].id;
-      borrowPanelMode = "read";
-      populateBorrowForm(activeRecords[0]);
-  } else {
-      selectedBorrowRecordId = null;
-      borrowPanelMode = "new";
-      if(document.getElementById("borrower").disabled){
-          populateBorrowForm(borrowEntryDraft || {borrower:""});
-      }
-      document.getElementById("seal").value = sealName;
-  }
-  
-  renderBorrowPanelState();
-  renderStatus();
+selectedBorrowSeal = sealName;
+concurrentBorrowMode = false;
+
+if(currentPendingIndex){
+selectedBorrowRecordId = null;
+borrowPanelMode = "new";
+populateBorrowForm(pendingTransferDraft || {});
+document.getElementById("seal").value = sealName;
+}else if(activeRecords.length){
+selectedBorrowRecordId = activeRecords[0].id;
+borrowPanelMode = "read";
+populateBorrowForm(activeRecords[0]);
+}else{
+selectedBorrowRecordId = null;
+borrowPanelMode = "new";
+populateBorrowForm(borrowEntryDraft || {});
+document.getElementById("seal").value = sealName;
+}
+
+renderBorrowPanelState();
+renderStatus();
+}
+
+function startConcurrentBorrow(){
+if(blockViewerAction()) return;
+if(!selectedBorrowSeal) return;
+
+selectedBorrowRecordId = null;
+borrowPanelMode = "new";
+concurrentBorrowMode = true;
+populateBorrowForm({});
+document.getElementById("seal").value = selectedBorrowSeal;
+renderBorrowPanelState();
+renderStatus();
 }
 
 function renderBorrowPanelState(){
@@ -3297,32 +3329,37 @@ return;
 
 const activeRecords = records.filter(record=>record.seal===active.seal && !record.returnTime);
 
+title.textContent = borrowPanelMode === "edit" ? "編輯借用資料" : "目前借用資料";
+description.textContent = borrowPanelMode === "edit"
+? "修改完成後請儲存變更"
+: "此印鑑目前借出中；如需登記另一位借用人，請使用新增同印鑑借用";
 badge.className = "badge badge-red";
 badge.textContent = "借出中";
 badge.classList.remove("hidden");
 
 let switcherHtml = '';
 if (activeRecords.length > 1) {
-    switcherHtml = `<div class="meta-item" style="width:100%; margin-bottom:10px; background:#e0e7ff; padding:10px; border-radius:6px; color:#3730a3; font-weight:bold; display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
+    switcherHtml = `<div class="active-record-switcher">
         <i data-lucide="layers"></i> 同印鑑有 ${activeRecords.length} 筆借出中：
-        <select onchange="switchActiveRecord(this.value)" style="flex:1; padding:6px; border-radius:4px; border:1px solid #c7d2fe; font-size:14px; background:white;">
+        <select onchange="switchActiveRecord(this.value)">
             ${activeRecords.map((r, idx) => `<option value="${r.id}" ${r.id === selectedBorrowRecordId ? 'selected' : ''}>[${idx+1}] ${escapeHtml(r.borrower)}</option>`).join('')}
         </select>
     </div>`;
 }
 
-meta.innerHTML = switcherHtml + `
-<div class="meta-item"><i data-lucide="calendar"></i> 借出時間：${formatDate(active.borrowTime||active.createdAt)}</div>
-`;
 meta.classList.remove("hidden");
-meta.innerHTML = `
+meta.innerHTML = switcherHtml + `
 <div class="borrowed-meta-item">
 <span>印鑑</span>
-<b>${active.seal || "-"}</b>
+<b>${escapeHtml(active.seal || "-")}</b>
 </div>
 <div class="borrowed-meta-item">
 <span>借用時間</span>
 <b>${formatDate(active.borrowTime)}</b>
+</div>
+<div class="borrowed-meta-item">
+<span>預計歸還</span>
+<b>${active.expectedReturnTime ? formatDate(active.expectedReturnTime) : "未設定"}</b>
 </div>
 <div class="borrowed-meta-item">
 <span>已借用時間</span>
@@ -3342,7 +3379,6 @@ cancelButton.classList.remove("hidden");
 }else if(!isViewerRole()){
 editButton.classList.remove("hidden");
 if(concurrentButton) concurrentButton.classList.remove("hidden");
-if(concurrentButton) concurrentButton.classList.remove("hidden");
 }
 
 lucide.createIcons();
@@ -3351,9 +3387,13 @@ return;
 
 title.textContent = currentPendingIndex
 ? "待借用轉正式借用"
+: concurrentBorrowMode
+? "新增同印鑑借用"
 : "借用資料";
 description.textContent = currentPendingIndex
 ? "資料已帶入，請從左側手動選擇一組可借用印鑑"
+: concurrentBorrowMode
+? `正在為「${selectedBorrowSeal}」新增另一筆借用資料`
 : selectedBorrowSeal
 ? "請填寫借用資訊後送出"
 : "請先從左側選擇一組可借用印鑑";
@@ -3419,7 +3459,11 @@ alert("請填寫必要欄位");
 return;
 }
 
-await updateDoc(doc(db,"sealRecords",before.id),after);
+const updateData = {
+...after,
+expectedReturnTime:after.expectedReturnTime || deleteField()
+};
+await updateDoc(doc(db,"sealRecords",before.id),updateData);
 
 await writeAuditLog({
 action:"update",
@@ -3483,7 +3527,7 @@ r.seal === seal &&
 
 );
 
-if(exists){
+if(exists && !concurrentBorrowMode){
 
 alert(`印鑑 ${seal} 目前借出中，無法重複借用`);
 
@@ -3499,6 +3543,7 @@ projectNo,
 formNo,
 purpose,
 expectedReturnTime: parseDateTimeLocal(document.getElementById("expectedReturnTime")?.value),
+allowConcurrent:concurrentBorrowMode,
 pendingId:currentPendingIndex
 };
 document.getElementById("borrowConfirmExpectedReturnTime").textContent = document.getElementById("expectedReturnTime")?.value ? formatDate(parseDateTimeLocal(document.getElementById("expectedReturnTime")?.value)) : "-";
@@ -3549,7 +3594,7 @@ r.seal === data.seal &&
 !r.returnTime
 );
 
-if(exists){
+if(exists && !data.allowConcurrent){
 alert(`印鑑 ${data.seal} 目前借出中，無法重複借用`);
 closeBorrowConfirmModal();
 await loadRecords();
@@ -3592,6 +3637,7 @@ department:data.department,
 projectNo:data.projectNo,
 formNo:data.formNo,
 purpose:data.purpose,
+expectedReturnTime:data.expectedReturnTime || null,
 status:"借出中"
 }
 });
@@ -4071,6 +4117,7 @@ record.seal===selectedBorrowSeal && !record.returnTime
 if(
 !currentPendingIndex &&
 borrowPanelMode === "new" &&
+!concurrentBorrowMode &&
 activeForSelected
 ){
 selectedBorrowSeal = "";
@@ -4639,6 +4686,7 @@ document.getElementById('editBorrower').value=r.borrower||'';
 document.getElementById('editDepartment').value=r.department||'';
 document.getElementById('editProjectNo').value=r.projectNo||'';
 document.getElementById('editFormNo').value=r.formNo||'';
+document.getElementById('editExpectedReturnTime').value=formatDateTimeLocal(r.expectedReturnTime);
 document.getElementById('editPurpose').value=r.purpose||'';
 
 document.getElementById('editOverlay').style.display='flex';
@@ -4657,12 +4705,16 @@ borrower:document.getElementById('editBorrower').value,
 department:document.getElementById('editDepartment').value,
 projectNo:document.getElementById('editProjectNo').value,
 formNo:document.getElementById('editFormNo').value,
-purpose:document.getElementById('editPurpose').value
+purpose:document.getElementById('editPurpose').value,
+expectedReturnTime:parseDateTimeLocal(document.getElementById('editExpectedReturnTime').value)
 };
 
 await updateDoc(
 doc(db,"sealRecords",id),
-after
+{
+...after,
+expectedReturnTime:after.expectedReturnTime || deleteField()
+}
 );
 
 await writeAuditLog({
@@ -4710,9 +4762,11 @@ loadRecords();
 }
 
 
-function exportExcel(){
+async function exportExcel(){
 
 if(blockViewerAction()) return;
+
+try{await ensureXlsx();}catch(error){console.error(error);return alert("Excel 元件載入失敗，請確認網路後再試");}
 
 const borrowStart =
 document.getElementById("borrowDateStart").value;
@@ -5042,19 +5096,19 @@ currentUser
 
 if(!sessionStorage.getItem("loginLogged")){
 
-await addDoc(
+sessionStorage.setItem(
+"loginLogged",
+"true"
+);
+
+addDoc(
 collection(db,"loginLogs"),
 {
 name:currentUser,
 email:normalizeEmail(user.email),
 role:currentRole,
 loginTime:new Date()
-});
-
-sessionStorage.setItem(
-"loginLogged",
-"true"
-);
+}).catch(error=>console.warn("登入紀錄寫入失敗",error));
 
 }
 
@@ -5075,37 +5129,6 @@ document.getElementById(
 applyRoleAccess();
 restoreLastPage();
 
-if(isViewerRole()){
-
-await Promise.all([
-    loadSeals(),
-    loadRecords(),
-    loadPendingRecords()
-]);
-
-}else{
-
-await Promise.all([
-    loadDepartments(),
-    loadSeals(),
-    loadRecords(),
-    loadPendingRecords()
-]);
-
-}
-
-document.getElementById(
-"systemArea"
-).style.display="block";
-
-requestAnimationFrame(()=>{
-
-document.getElementById(
-"systemArea"
-).style.opacity="1";
-
-});
-
 if(!isAdminRole()){
 
 document.getElementById(
@@ -5125,6 +5148,23 @@ document.getElementById(
 if(!currentIsSystemAdmin){
 document.getElementById("memberMenu").style.display = "none";
 }
+
+const systemArea = document.getElementById("systemArea");
+systemArea.style.display="block";
+
+requestAnimationFrame(()=>{
+systemArea.style.opacity="1";
+});
+
+const initialDataLoads = isViewerRole()
+? [loadSeals(),loadRecords(),loadPendingRecords()]
+: [loadDepartments(),loadSeals(),loadRecords(),loadPendingRecords()];
+
+Promise.allSettled(initialDataLoads).then(results=>{
+results.forEach(result=>{
+if(result.status === "rejected") console.error("初始資料載入失敗",result.reason);
+});
+});
 
 
 });
@@ -5184,7 +5224,7 @@ sidebar.classList.contains("collapsed")
 
 let sealCalendar = null;
 
-window.showCalendarPage = function(element) {
+window.showCalendarPage = async function(element) {
     if(typeof showPage === 'function') {
         showPage('calendarPage', element);
     } else {
@@ -5195,6 +5235,19 @@ window.showCalendarPage = function(element) {
         if(element) element.classList.add('active');
     }
 
+    if (!historyLoaded) {
+        await loadHistoryRecords(true);
+    }
+    try{
+        await loadExternalScript(
+            "https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js",
+            ()=>typeof FullCalendar !== "undefined"
+        );
+    }catch(error){
+        console.error(error);
+        alert("行事曆元件載入失敗，請確認網路後再試。");
+        return;
+    }
     if (!sealCalendar) {
         initSealCalendar();
     }
@@ -5220,7 +5273,7 @@ function initSealCalendar() {
         buttonText: {
             today: '今天',
             month: '月視表',
-            week: '周視表',
+            week: '週視表',
             list: '列表'
         },
         height: 'auto',
@@ -5313,25 +5366,24 @@ function loadCalendarEvents() {
         }
     });
     
-    sealCalendar.removeAllEvents();
-    const oldSources = sealCalendar.getEventSources();
-    oldSources.forEach(s => s.remove());
+    sealCalendar.getEventSources().forEach(source => source.remove());
     sealCalendar.addEventSource(events);
 }
+
+window.switchActiveRecord = function(recordId) {
+selectedBorrowRecordId = recordId;
+const active = records.find(record=>record.id===selectedBorrowRecordId);
+if(active) {
+borrowPanelMode = "read";
+concurrentBorrowMode = false;
+populateBorrowForm(active);
+}
+renderBorrowPanelState();
+};
+window.startConcurrentBorrow = startConcurrentBorrow;
 })().catch(error=>{
 
 console.error("系統初始化失敗",error);
 alert(`系統初始化失敗：${error.message}`);
 
 });
-
-
-window.switchActiveRecord = function(recordId) {
-    selectedBorrowRecordId = recordId;
-    const active = records.find(record=>record.id===selectedBorrowRecordId);
-    if(active) {
-        borrowPanelMode = "read";
-        populateBorrowForm(active);
-    }
-    renderBorrowPanelState();
-};

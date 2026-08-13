@@ -722,10 +722,39 @@ flex:0 0 180px;
 }
 
 .borrow-action-buttons .borrow-main-action{
+height:52px;
 width:180px;
 min-width:180px;
 white-space:nowrap;
 flex:0 0 180px;
+}
+
+.borrow-action-buttons .btn-secondary{
+background:#eff6ff;
+color:#2563eb;
+border:1px solid #bfdbfe;
+box-shadow:0 2px 6px rgba(37,99,235,.06);
+display:inline-flex;
+align-items:center;
+justify-content:center;
+gap:8px;
+}
+
+.borrow-action-buttons .btn-secondary.hidden{
+display:none;
+}
+
+.borrow-action-buttons .btn-secondary:hover{
+background:#dbeafe;
+color:#1d4ed8;
+border-color:#93c5fd;
+transform:translateY(-1px);
+}
+
+.borrow-action-buttons .btn-secondary svg{
+width:18px;
+height:18px;
+stroke-width:2.3;
 }
 
 .btn:disabled,
@@ -3798,9 +3827,37 @@ body.modal-open{
     }
 }
 
-/* ��ƾ�˦� */
+/* 印鑑借用行事曆 */
 #calendarPage {
     padding-bottom: 40px;
+}
+.seal-calendar{
+    min-height:600px;
+}
+.active-record-switcher{
+    grid-column:1 / -1;
+    width:100%;
+    margin-bottom:10px;
+    background:#ffedd5;
+    padding:10px 12px;
+    border-radius:8px;
+    border:1px solid #fdba74;
+    color:#9a3412;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:8px;
+}
+.active-record-switcher select{
+    flex:1;
+    min-width:180px;
+    padding:7px 10px;
+    border-radius:6px;
+    border:1px solid #fdba74;
+    font-size:14px;
+    background:#fff;
+    color:#7c2d12;
 }
 .fc-theme-standard td, .fc-theme-standard th {
     border-color: #e2e8f0;
@@ -3830,4 +3887,11 @@ body.modal-open{
 .fc .fc-button-primary:not(:disabled).fc-button-active, .fc .fc-button-primary:not(:disabled):active {
     background-color: #1d4ed8;
     border-color: #1d4ed8;
+}
+@media (max-width: 768px){
+    .seal-calendar{min-height:480px;}
+    .fc .fc-toolbar{align-items:stretch;flex-direction:column;gap:10px;}
+    .fc .fc-toolbar-chunk{display:flex;justify-content:center;}
+    .fc .fc-toolbar-title{font-size:1.05rem;}
+    .fc .fc-button{font-size:.82rem;padding:.35em .55em;}
 }
