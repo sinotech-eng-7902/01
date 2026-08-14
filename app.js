@@ -1552,7 +1552,7 @@ if(typeof loadCalendarEvents === 'function') loadCalendarEvents();
 }
 
 let currentPage = 1;
-let pageSize = 10;
+let pageSize = 20;
 
 function showPage(pageId,el){
 
@@ -1644,7 +1644,6 @@ window.resetAuditFilter = resetAuditFilter;
 window.loadMoreAuditLogs = loadMoreAuditLogs;
 window.loadLoginLogs = loadLoginLogs;
 window.loadMoreLoginLogs = loadMoreLoginLogs;
-window.loadMoreHistoryRecords = loadMoreHistoryRecords;
 
 function restoreLastPage(){
 
@@ -1726,20 +1725,8 @@ function toggleAdvancedFilter(){
 const panel =
 document.getElementById("advancedFilter");
 
-const text =
-document.getElementById("filterToggleText");
-
 panel.classList.toggle("show");
-
-if(panel.classList.contains("show")){
-
-text.innerHTML = "收合篩選";
-
-}else{
-
-text.innerHTML = "進階篩選";
-
-}
+updateHistoryFilterSummary();
 
 }
 
@@ -3916,8 +3903,9 @@ currentPage = 1;
 try{
 
 historyLoading = true;
-renderHistoryLoadMore();
+renderHistoryLoadingStatus();
 
+do{
 const snapshot = await getDocs(buildHistoryQuery());
 const known = new Map(historyRecords.map(record=>[record.id,record]));
 
@@ -3928,11 +3916,14 @@ known.set(docSnap.id,{id:docSnap.id,...docSnap.data()});
 historyRecords = [...known.values()];
 historyLastDoc = snapshot.docs[snapshot.docs.length - 1] || historyLastDoc;
 historyHasMore = snapshot.size === HISTORY_BATCH_SIZE;
-historyLoaded = true;
 
 const activeRecords = records.filter(record=>!record.returnTime);
 records = [...historyRecords,...activeRecords];
 renderTable();
+renderHistoryLoadingStatus();
+}while(historyHasMore);
+
+historyLoaded = true;
 if(typeof loadCalendarEvents === 'function') loadCalendarEvents();
 }catch(error){
 
@@ -3941,21 +3932,15 @@ alert(`歷史借用紀錄讀取失敗：${error.message || "未知錯誤"}`);
 
 }finally{
 historyLoading = false;
-renderHistoryLoadMore();
+renderHistoryLoadingStatus();
 }
 
 }
 
-async function loadMoreHistoryRecords(){
-await loadHistoryRecords(false);
-}
-
-function renderHistoryLoadMore(){
-const button = document.getElementById("historyLoadMoreButton");
-if(!button) return;
-button.hidden = !historyHasMore && !historyLoading;
-button.disabled = historyLoading;
-button.textContent = historyLoading ? "載入中..." : "再載入 100 筆歷史紀錄";
+function renderHistoryLoadingStatus(){
+const status = document.getElementById("historyLoadingStatus");
+if(!status) return;
+status.hidden = !historyLoading;
 }
 
 function updateKPI(){
@@ -4458,6 +4443,81 @@ return t2 - t1;
 
 }
 
+function getHistoryFilterState(){
+const read = id=>(document.getElementById(id)?.value || "").trim();
+const sealSelect = document.getElementById("sealFilter");
+const statusSelect = document.getElementById("statusFilter");
+const borrowStart = read("borrowDateStart");
+const borrowEnd = read("borrowDateEnd");
+const returnStart = read("returnDateStart");
+const returnEnd = read("returnDateEnd");
+
+return [
+{key:"search",label:"關鍵字",value:read("searchInput")},
+{key:"seal",label:"印鑑",value:read("sealFilter"),display:sealSelect?.selectedOptions?.[0]?.textContent || ""},
+{key:"status",label:"狀態",value:read("statusFilter"),display:statusSelect?.selectedOptions?.[0]?.textContent || ""},
+{key:"project",label:"計畫編號",value:read("projectFilter")},
+{key:"form",label:"表單編號",value:read("formFilter")},
+{key:"borrowDate",label:"借用日期",value:borrowStart || borrowEnd,display:[borrowStart || "不限",borrowEnd || "不限"].join(" 至 ")},
+{key:"returnDate",label:"歸還日期",value:returnStart || returnEnd,display:[returnStart || "不限",returnEnd || "不限"].join(" 至 ")}
+].filter(item=>item.value);
+}
+
+function clearHistoryFilter(key){
+const targets = {
+search:["searchInput"],
+seal:["sealFilter"],
+status:["statusFilter"],
+project:["projectFilter"],
+form:["formFilter"],
+borrowDate:["borrowDateStart","borrowDateEnd"],
+returnDate:["returnDateStart","returnDateEnd"]
+}[key] || [];
+
+targets.forEach(id=>{
+const element = document.getElementById(id);
+if(element) element.value = "";
+});
+currentPage = 1;
+renderTable();
+}
+
+function updateHistoryFilterSummary(){
+const filters = getHistoryFilterState();
+const container = document.getElementById("historyActiveFilters");
+const clearButton = document.getElementById("clearHistoryFiltersButton");
+const panel = document.getElementById("advancedFilter");
+const toggleText = document.getElementById("filterToggleText");
+const advancedCount = filters.filter(item=>["project","form","borrowDate","returnDate"].includes(item.key)).length;
+
+if(clearButton) clearButton.disabled = filters.length === 0;
+if(toggleText){
+const base = panel?.classList.contains("show") ? "收合篩選" : "進階篩選";
+toggleText.textContent = advancedCount ? `${base} ${advancedCount}` : base;
+}
+
+if(!container) return;
+container.innerHTML = "";
+container.hidden = filters.length === 0;
+
+filters.forEach(item=>{
+const chip = document.createElement("span");
+chip.className = "history-filter-chip";
+
+const text = document.createElement("span");
+text.textContent = `${item.label}：${item.display || item.value}`;
+chip.appendChild(text);
+
+const remove = document.createElement("button");
+remove.type = "button";
+remove.setAttribute("aria-label",`移除${item.label}條件`);
+remove.textContent = "×";
+remove.addEventListener("click",()=>clearHistoryFilter(item.key));
+chip.appendChild(remove);
+container.appendChild(chip);
+});
+}
+
 function renderTable(){
 
 const table =
@@ -4468,15 +4528,7 @@ table.innerHTML = "";
 const filteredRecords =
 getFilteredRecords();
 
-const countEl =
-document.getElementById("recordCount");
-
-if(countEl){
-
-countEl.textContent =
-filteredRecords.length;
-
-}
+updateHistoryFilterSummary();
 
 const totalPages =
 Math.ceil(filteredRecords.length / pageSize);
@@ -4608,66 +4660,31 @@ document.getElementById("paginationArea");
 
 area.innerHTML = "";
 
-if(totalPages <= 1) return;
+const safeTotalPages = Math.max(totalPages,1);
 
-function createPageButton(label,page,disabled=false,active=false){
-
-const btn =
-document.createElement("button");
-
-btn.className = "btn";
-
-btn.innerText = label;
-
-btn.disabled = disabled;
-
-btn.style.background =
-active
-? "#2563eb"
-: disabled
-? "#f1f5f9"
-: "#e2e8f0";
-
-btn.style.color =
-active
-? "white"
-: disabled
-? "#94a3b8"
-: "black";
-
-btn.style.cursor =
-disabled
-? "not-allowed"
-: "pointer";
-
-btn.onclick = ()=>{
-
+function createPageButton(label,page,disabled=false){
+const button = document.createElement("button");
+button.type = "button";
+button.className = "history-page-button";
+button.textContent = label;
+button.disabled = disabled;
+button.onclick = ()=>{
 if(disabled) return;
-
 currentPage = page;
 renderTable();
-
+document.querySelector("#historyPage .table-wrap")?.scrollIntoView({behavior:"smooth",block:"start"});
 };
-
-return btn;
-
+return button;
 }
 
-area.appendChild(
-createPageButton("上一頁",currentPage - 1,currentPage === 1)
-);
+area.appendChild(createPageButton("上一頁",currentPage - 1,currentPage <= 1));
 
-for(let i=1;i<=totalPages;i++){
+const indicator = document.createElement("span");
+indicator.className = "history-page-indicator";
+indicator.textContent = `第 ${totalPages ? currentPage : 0} / ${totalPages} 頁`;
+area.appendChild(indicator);
 
-area.appendChild(
-createPageButton(i,i,false,i === currentPage)
-);
-
-}
-
-area.appendChild(
-createPageButton("下一頁",currentPage + 1,currentPage === totalPages)
-);
+area.appendChild(createPageButton("下一頁",currentPage + 1,currentPage >= safeTotalPages || totalPages === 0));
 
 }
 
@@ -4894,20 +4911,25 @@ if(!element) return;
 element.addEventListener(element.tagName === "SELECT" ? "change" : "input",updateBorrowFormProgress);
 });
 
+function handleHistoryFilterChange(){
+currentPage = 1;
+renderTable();
+}
+
 document.getElementById("searchInput")
-.addEventListener("input",renderTable);
+.addEventListener("input",handleHistoryFilterChange);
 
 document.getElementById("sealFilter")
-.addEventListener("change",renderTable);
+.addEventListener("change",handleHistoryFilterChange);
 
 document.getElementById("statusFilter")
-.addEventListener("change",renderTable);
+.addEventListener("change",handleHistoryFilterChange);
 
 document.getElementById("projectFilter")
-.addEventListener("input",renderTable);
+.addEventListener("input",handleHistoryFilterChange);
 
 document.getElementById("formFilter")
-.addEventListener("input",renderTable);
+.addEventListener("input",handleHistoryFilterChange);
 
 [
 "borrowDateStart",
@@ -4917,10 +4939,7 @@ document.getElementById("formFilter")
 ].forEach(id=>{
 
 document.getElementById(id)
-.addEventListener("change",()=>{
-currentPage = 1;
-renderTable();
-});
+.addEventListener("change",handleHistoryFilterChange);
 
 });
 

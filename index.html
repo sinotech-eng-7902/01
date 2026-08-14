@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>印鑑借用管理系統 v15.12</title>
+<title>印鑑借用管理系統 v15.13</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./styles.css?v=20260814-v1512-borrow-workbench">
+    <link rel="stylesheet" href="./styles.css?v=20260814-v1513-history-pagination">
 
 <script defer src="https://unpkg.com/lucide@latest"></script>
 
@@ -232,10 +232,7 @@ transition:.15s;
 
 <input type="hidden" id="seal">
 
-<div class="borrow-form-sections">
-<section class="borrow-form-section">
-<h3><i data-lucide="user-round"></i>借用人資料</h3>
-<div class="borrow-form-grid">
+<div class="borrow-form-grid borrow-form-grid-continuous">
 <div class="form-group">
 <label for="borrower">借用人</label>
 <input type="text" id="borrower" placeholder="請輸入借用人" autocomplete="off">
@@ -245,12 +242,7 @@ transition:.15s;
 <label for="department">部門</label>
 <select id="department"></select>
 </div>
-</div>
-</section>
 
-<section class="borrow-form-section">
-<h3><i data-lucide="file-text"></i>文件資料</h3>
-<div class="borrow-form-grid">
 <div class="form-group">
 <label for="projectNo">計畫編號</label>
 <input type="text" id="projectNo" placeholder="請輸入計畫編號" autocomplete="off">
@@ -260,12 +252,7 @@ transition:.15s;
 <label for="formNo">表單編號</label>
 <input type="text" id="formNo" placeholder="請輸入表單編號" autocomplete="off">
 </div>
-</div>
-</section>
 
-<section class="borrow-form-section">
-<h3><i data-lucide="calendar-clock"></i>借用資訊</h3>
-<div class="borrow-form-grid">
 <div class="form-group">
 <label for="purpose">用途</label>
 <input type="text" id="purpose" placeholder="例如：合約用印、投標文件" autocomplete="off">
@@ -275,8 +262,6 @@ transition:.15s;
 <label for="expectedReturnTime">預計歸還時間</label>
 <input type="datetime-local" id="expectedReturnTime">
 </div>
-</div>
-</section>
 </div>
 
 <div class="borrow-action-bar">
@@ -509,22 +494,25 @@ class="detail-title-icon">
 
 <div class="section-divider"></div>
 
-<div class="search-toolbar">
+<div class="search-toolbar history-search-toolbar">
 
-<input
-type="text"
-id="searchInput"
-class="search-main"
-placeholder="搜尋借用人、部門、用途、計畫編號、表單編號">
+<div class="search-row history-query-row">
 
-<div class="search-row">
+    <label class="history-search-field" for="searchInput">
+        <i class="history-filter-icon" data-lucide="search" aria-hidden="true"></i>
+        <input
+        type="text"
+        id="searchInput"
+        class="search-main"
+        placeholder="搜尋借用人、部門、用途、計畫編號或表單編號">
+    </label>
 
     <div class="filter-group">
 
 
 <div class="filter-card">
 
-    <i data-lucide="stamp"></i>
+    <i class="history-filter-icon" data-lucide="stamp" aria-hidden="true"></i>
 
     <select id="sealFilter">
         <option value="">全部印鑑</option>
@@ -539,7 +527,7 @@ placeholder="搜尋借用人、部門、用途、計畫編號、表單編號">
 
 <div class="filter-card">
 
-    <i data-lucide="clipboard-list"></i>
+    <i class="history-filter-icon" data-lucide="circle-check" aria-hidden="true"></i>
 
     <select id="statusFilter">
 
@@ -555,12 +543,13 @@ placeholder="搜尋借用人、部門、用途、計畫編號、表單編號">
 
 <div class="filter-group">
 
-    <button
+<button
+        id="historyAdvancedButton"
         type="button"
         class="filter-advanced-btn"
         onclick="toggleAdvancedFilter()">
 
-        <i data-lucide="sliders-horizontal"></i>
+        <i class="history-filter-icon" data-lucide="sliders-horizontal" aria-hidden="true"></i>
 
         <span id="filterToggleText">
             進階篩選
@@ -569,24 +558,16 @@ placeholder="搜尋借用人、部門、用途、計畫編號、表單編號">
     </button>
 
 </div>
-<div class="search-actions">
-
-<span class="record-count">
-
-共
-<b id="recordCount">0</b>
-筆資料
-
-</span>
-
+<div class="search-actions history-search-actions">
 <button
+id="clearHistoryFiltersButton"
 type="button"
 class="btn btn-gray"
 onclick="resetHistoryFilter()">
 
 <i data-lucide="rotate-ccw"></i>
 
-重設篩選
+清除條件
 
 </button>
 
@@ -669,6 +650,8 @@ onclick="exportExcel()">
 
 </div>
 
+<div id="historyActiveFilters" class="history-active-filters" hidden></div>
+
 <div class="table-wrap">
 
 <table>
@@ -696,33 +679,27 @@ onclick="exportExcel()">
 
 </div>
 
-<div style="display:flex;justify-content:space-between;align-items:center;margin-top:15px;flex-wrap:wrap;gap:10px;">
+<div class="history-pagination-row">
 
-<div>
-<label>每頁顯示：</label>
+<label class="history-page-size" for="pageSizeSelect">
+<span>每頁顯示</span>
 
 <select id="pageSizeSelect" onchange="changePageSize()"
-style="padding:8px;border-radius:8px;">
+aria-label="每頁顯示筆數">
 
-<option value="10">10 筆</option>
-<option value="25">25 筆</option>
+<option value="20">20 筆</option>
 <option value="50">50 筆</option>
+<option value="100">100 筆</option>
 
 </select>
+</label>
+
+<div id="historyLoadingStatus" class="history-loading-status" hidden>
+<span class="history-loading-dot" aria-hidden="true"></span>
+正在讀取完整借用紀錄
 </div>
 
-<div id="paginationArea"
-style="display:flex;gap:8px;flex-wrap:wrap;">
-</div>
-
-<button
-type="button"
-id="historyLoadMoreButton"
-class="btn btn-gray"
-onclick="loadMoreHistoryRecords()"
-hidden>
-再載入 100 筆歷史紀錄
-</button>
+<div id="paginationArea" class="history-pagination"></div>
 
 </div>
 
@@ -1488,7 +1465,7 @@ onclick="confirmReturnSeal()">
 </section>
 </div>
 
-    <script defer src="./app.js?v=20260814-v1512-borrow-workbench"></script>
+    <script defer src="./app.js?v=20260814-v1513-history-pagination"></script>
 
 </body>
 </html>
