@@ -5223,6 +5223,84 @@ sidebar.classList.contains("collapsed")
 
 
 let sealCalendar = null;
+let sealCalendarFilter = "all";
+let sealCalendarEvents = [];
+
+const SEAL_CALENDAR_STATUS = {
+    pending:{label:"待借出",className:"calendar-event-pending",background:"#f9edcf",border:"#d4a849",text:"#725014"},
+    borrowed:{label:"借用中",className:"calendar-event-borrowed",background:"#e1edf7",border:"#4b86b6",text:"#1e527d"},
+    due:{label:"今日應還",className:"calendar-event-due",background:"#eee9f6",border:"#8d72ad",text:"#60477c"},
+    overdue:{label:"已逾期",className:"calendar-event-overdue",background:"#f9e7e9",border:"#d26975",text:"#9c3040"},
+    returned:{label:"已歸還",className:"calendar-event-returned",background:"#e8efec",border:"#78998c",text:"#49665b"}
+};
+
+function calendarValueToDate(value){
+    if(!value) return null;
+    if(value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+    if(typeof value.toDate === "function"){
+        const converted = value.toDate();
+        return Number.isNaN(converted.getTime()) ? null : converted;
+    }
+    if(value.seconds){
+        const converted = new Date(Number(value.seconds) * 1000);
+        return Number.isNaN(converted.getTime()) ? null : converted;
+    }
+    const converted = new Date(value);
+    return Number.isNaN(converted.getTime()) ? null : converted;
+}
+
+function calendarDateKey(value){
+    const date = calendarValueToDate(value);
+    if(!date) return "";
+    const pad = number => String(number).padStart(2,"0");
+    return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
+}
+
+function calendarIsoString(value){
+    const date = calendarValueToDate(value);
+    if(!date) return null;
+    const pad = number => String(number).padStart(2,"0");
+    return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
+}
+
+function getCalendarRecordStatus(record){
+    if(record?.returnTime) return "returned";
+    const expected = calendarValueToDate(record?.expectedReturnTime);
+    if(!expected) return "borrowed";
+    const now = new Date();
+    if(expected.getTime() < now.getTime()) return "overdue";
+    if(calendarDateKey(expected) === calendarDateKey(now)) return "due";
+    return "borrowed";
+}
+
+function calendarStatusEvent(status,event){
+    const palette = SEAL_CALENDAR_STATUS[status] || SEAL_CALENDAR_STATUS.borrowed;
+    return {
+        ...event,
+        backgroundColor:palette.background,
+        borderColor:palette.border,
+        textColor:palette.text,
+        classNames:["calendar-event",palette.className],
+        extendedProps:{...event.extendedProps,statusKey:status,status:palette.label}
+    };
+}
+
+function tidyCalendarListDays(calendarElement){
+    window.requestAnimationFrame(()=>{
+        const rows = [...calendarElement.querySelectorAll('.fc-list-table tbody > tr')];
+        rows.forEach((row,index)=>{
+            if(!row.classList.contains('fc-list-day')) return;
+            let hasVisibleEvent = false;
+            for(let cursor=index+1; cursor<rows.length && !rows[cursor].classList.contains('fc-list-day'); cursor+=1){
+                if(rows[cursor].classList.contains('fc-list-event') && getComputedStyle(rows[cursor]).display !== 'none'){
+                    hasVisibleEvent = true;
+                    break;
+                }
+            }
+            row.style.display = hasVisibleEvent ? '' : 'none';
+        });
+    });
+}
 
 window.showCalendarPage = async function(element) {
     if(typeof showPage === 'function') {
@@ -5262,113 +5340,205 @@ function initSealCalendar() {
         return;
     }
     sealCalendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
+        initialView: window.matchMedia('(max-width: 768px)').matches ? 'listMonth' : 'dayGridMonth',
         locale: 'zh-tw',
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
-            right: 'dayGridMonth,dayGridWeek,listWeek'
+            right: 'dayGridMonth,listMonth'
         },
-        displayEventTime: false,
+        displayEventTime: true,
+        eventTimeFormat:{hour:'2-digit',minute:'2-digit',hour12:false},
+        titleFormat:{year:'numeric',month:'long'},
         buttonText: {
             today: '今天',
-            month: '月視表',
-            week: '週視表',
-            list: '列表'
+            month: '月曆',
+            list: '清單'
         },
         height: 'auto',
+        fixedWeekCount:false,
+        dayMaxEvents:3,
+        moreLinkContent:arg=>`另有 ${arg.num} 筆`,
+        noEventsContent:'目前沒有符合條件的借用行程',
         events: [],
-        eventClick: function(info) {
+        eventDidMount:function(info){
+            if(info.view.type.startsWith('list')){
+                if(!info.isStart){
+                    info.el.style.display = 'none';
+                    tidyCalendarListDays(calendarEl);
+                    return;
+                }
+                const timeCell = info.el.querySelector('.fc-list-event-time');
+                if(timeCell && info.event.start){
+                    timeCell.textContent = info.event.start.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false});
+                }
+                tidyCalendarListDays(calendarEl);
+            }
             const props = info.event.extendedProps;
-            alert(`借用詳情：\n印鑑：${props.seal}\n借用人：${props.borrower}\n狀態：${props.status}\n借出時間：${props.borrowTime || '無'}\n歸還時間：${props.returnTime || '無'}`);
+            const label = `${props.status}｜${props.seal}｜${props.borrower}`;
+            info.el.setAttribute('title',label);
+            info.el.setAttribute('aria-label',label);
+        },
+        eventClick: function(info) {
+            info.jsEvent.preventDefault();
+            openCalendarDetail(info.event);
         }
     });
     sealCalendar.render();
 }
 
 function loadCalendarEvents() {
-    if (!sealCalendar) return;
     const events = [];
-    
-    function toSafeDateString(val) {
-        if(!val) return null;
-        let d;
-        if(val.seconds) d = new Date(val.seconds * 1000);
-        else if (val instanceof Date) d = val;
-        else d = new Date(val);
-        if(isNaN(d.getTime())) return null;
-        const pad = n => String(n).padStart(2, '0');
-        return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':00';
-    }
 
     (typeof records !== 'undefined' ? records : []).forEach(r => {
-        const isReturned = !!r.returnTime;
-
-        let startStr = toSafeDateString(r.borrowTime || r.createdAt);
-        let endStr = isReturned ? toSafeDateString(r.returnTime) : toSafeDateString(r.expectedReturnTime);
+        const status = getCalendarRecordStatus(r);
+        let startStr = calendarIsoString(r.borrowTime || r.createdAt);
+        let endStr = status === 'returned' ? calendarIsoString(r.returnTime) : calendarIsoString(r.expectedReturnTime);
         
         if (startStr) {
             if(!endStr) {
                 let d = new Date(startStr);
                 d.setHours(d.getHours() + 1);
-                endStr = toSafeDateString(d);
+                endStr = calendarIsoString(d);
             }
-            events.push({
+            events.push(calendarStatusEvent(status,{
                 id: 'record_' + r.id,
-                title: '[' + (isReturned ? '已歸還' : '借出中') + '] ' + r.seal + ' - ' + r.borrower,
+                title: `${r.seal || '未命名印鑑'} · ${r.borrower || '未填借用人'}`,
                 start: startStr,
                 end: endStr,
-                backgroundColor: isReturned ? '#e0e7ff' : '#ef4444',
-                borderColor: isReturned ? '#a5b4fc' : '#ef4444',
-                textColor: isReturned ? '#3730a3' : '#ffffff',
-                classNames: isReturned ? ['fc-event-past'] : [],
                 extendedProps: {
                     seal: r.seal,
                     borrower: r.borrower,
-                    status: isReturned ? '已歸還' : '借出中',
+                    department:r.department || '-',
+                    projectNo:r.projectNo || '-',
+                    formNo:r.formNo || '-',
+                    purpose:r.purpose || '-',
                     borrowTime: formatDate(r.borrowTime || r.createdAt),
-                    returnTime: r.returnTime ? formatDate(r.returnTime) : (r.expectedReturnTime ? formatDate(r.expectedReturnTime) + " (預計)" : "未定")
+                    expectedReturnTime:r.expectedReturnTime ? formatDate(r.expectedReturnTime) : '未設定',
+                    returnTime:r.returnTime ? formatDate(r.returnTime) : '尚未歸還'
                 }
-            });
+            }));
         }
     });
 
     (typeof pendingRecords !== 'undefined' ? pendingRecords : []).forEach(p => {
         if(p.status === '已借出' || p.status === '已取消' || p.status === '已拒絕') return;
 
-        let startStr = toSafeDateString(p.expectedBorrowTime);
-        let endStr = toSafeDateString(p.expectedReturnTime);
+        let startStr = calendarIsoString(p.expectedBorrowTime);
+        let endStr = calendarIsoString(p.expectedReturnTime);
         
         if (!startStr && endStr) {
              let d = new Date(endStr);
              d.setHours(d.getHours() - 1);
-             startStr = toSafeDateString(d);
+             startStr = calendarIsoString(d);
         }
         
         if (startStr) {
             if(!endStr) {
                 let d = new Date(startStr);
                 d.setHours(d.getHours() + 1);
-                endStr = toSafeDateString(d);
+                endStr = calendarIsoString(d);
             }
-            events.push({
+            events.push(calendarStatusEvent('pending',{
                 id: 'pending_' + p.id,
-                title: '[預約待借用] ' + p.borrower,
+                title: `待確認印鑑 · ${p.borrower || '未填借用人'}`,
                 start: startStr,
                 end: endStr,
-                color: '#3b82f6',
                 extendedProps: {
-                    seal: '尚未選擇 (預約中)',
+                    seal:'待確認印鑑',
                     borrower: p.borrower,
-                    status: '待借用'
+                    department:p.department || '-',
+                    projectNo:p.projectNo || '-',
+                    formNo:p.formNo || '-',
+                    purpose:p.purpose || '-',
+                    borrowTime:p.expectedBorrowTime ? `${formatDate(p.expectedBorrowTime)}（預計）` : '未設定',
+                    expectedReturnTime:p.expectedReturnTime ? formatDate(p.expectedReturnTime) : '未設定',
+                    returnTime:'尚未借出'
                 }
-            });
+            }));
         }
     });
-    
-    sealCalendar.getEventSources().forEach(source => source.remove());
-    sealCalendar.addEventSource(events);
+
+    sealCalendarEvents = events;
+    updateSealCalendarCounts();
+    applySealCalendarFilter();
 }
+
+function updateSealCalendarCounts(){
+    const counts = {all:sealCalendarEvents.length,pending:0,borrowed:0,due:0,overdue:0,returned:0};
+    sealCalendarEvents.forEach(event=>{
+        const key = event.extendedProps?.statusKey;
+        if(Object.prototype.hasOwnProperty.call(counts,key)) counts[key] += 1;
+    });
+    const targets = {
+        all:'calendarCountAll',pending:'calendarCountPending',borrowed:'calendarCountBorrowed',
+        due:'calendarCountDue',overdue:'calendarCountOverdue',returned:'calendarCountReturned'
+    };
+    Object.entries(targets).forEach(([key,id])=>{
+        const element = document.getElementById(id);
+        if(element) element.textContent = counts[key];
+    });
+}
+
+function applySealCalendarFilter(){
+    if(!sealCalendar) return;
+    const visibleEvents = sealCalendarFilter === 'all'
+        ? sealCalendarEvents
+        : sealCalendarEvents.filter(event=>event.extendedProps?.statusKey === sealCalendarFilter);
+    sealCalendar.getEventSources().forEach(source => source.remove());
+    sealCalendar.addEventSource(visibleEvents);
+}
+
+window.filterSealCalendar = function(status,button){
+    if(status !== 'all' && !Object.prototype.hasOwnProperty.call(SEAL_CALENDAR_STATUS,status)) return;
+    sealCalendarFilter = status;
+    document.querySelectorAll('[data-calendar-filter]').forEach(item=>item.classList.remove('is-active'));
+    const activeButton = button || document.querySelector(`[data-calendar-filter="${status}"]`);
+    if(activeButton) activeButton.classList.add('is-active');
+    applySealCalendarFilter();
+};
+
+function calendarDetailItem(label,value,wide=false){
+    return `<div class="calendar-detail-item${wide ? ' is-wide' : ''}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value || '-')}</strong></div>`;
+}
+
+function openCalendarDetail(event){
+    const overlay = document.getElementById('calendarDetailOverlay');
+    if(!overlay) return;
+    const props = event.extendedProps || {};
+    const statusKey = props.statusKey || 'borrowed';
+    document.getElementById('calendarDetailTitle').textContent = props.seal || '借用行程資訊';
+    document.getElementById('calendarDetailCaption').textContent = `${props.borrower || '未填借用人'}｜${props.department || '未設定部門'}`;
+    const status = document.getElementById('calendarDetailStatus');
+    status.textContent = props.status || '借用中';
+    status.className = `calendar-detail-status status-${statusKey}`;
+    document.getElementById('calendarDetailBody').innerHTML = `<div class="calendar-detail-grid">
+        ${calendarDetailItem('借用人',props.borrower)}
+        ${calendarDetailItem('部門',props.department)}
+        ${calendarDetailItem('計畫編號',props.projectNo)}
+        ${calendarDetailItem('表單編號',props.formNo)}
+        ${calendarDetailItem(statusKey === 'pending' ? '預計借用時間' : '借用時間',props.borrowTime)}
+        ${calendarDetailItem('預計歸還時間',props.expectedReturnTime)}
+        ${calendarDetailItem('實際歸還狀態',props.returnTime,true)}
+        ${calendarDetailItem('用印用途',props.purpose,true)}
+    </div>`;
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden','false');
+    document.body.classList.add('modal-open');
+    if(window.lucide) lucide.createIcons();
+}
+
+window.closeCalendarDetail = function(){
+    const overlay = document.getElementById('calendarDetailOverlay');
+    if(!overlay) return;
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden','true');
+    document.body.classList.remove('modal-open');
+};
+
+document.addEventListener('keydown',event=>{
+    if(event.key === 'Escape') window.closeCalendarDetail();
+});
 
 window.switchActiveRecord = function(recordId) {
 selectedBorrowRecordId = recordId;

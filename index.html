@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>印鑑借用管理系統 v15.10</title>
+<title>印鑑借用管理系統 v15.11</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./styles.css?v=20260813-v1510-concurrent-borrow">
+    <link rel="stylesheet" href="./styles.css?v=20260814-v1511-calendar-refresh">
 
 <script defer src="https://unpkg.com/lucide@latest"></script>
 
@@ -389,6 +389,20 @@ onclick="openPendingModal()">
 </div>
 </div>
 <div class="section-divider"></div>
+<div class="calendar-status-toolbar" aria-label="行事曆狀態篩選">
+<div class="calendar-status-copy">
+<strong>借用狀態</strong>
+<span>點選狀態可快速篩選行程</span>
+</div>
+<div class="calendar-status-filters">
+<button type="button" class="calendar-status-filter is-active" data-calendar-filter="all" onclick="filterSealCalendar('all',this)">全部 <span id="calendarCountAll">0</span></button>
+<button type="button" class="calendar-status-filter status-pending" data-calendar-filter="pending" onclick="filterSealCalendar('pending',this)"><i aria-hidden="true"></i>待借出 <span id="calendarCountPending">0</span></button>
+<button type="button" class="calendar-status-filter status-borrowed" data-calendar-filter="borrowed" onclick="filterSealCalendar('borrowed',this)"><i aria-hidden="true"></i>借用中 <span id="calendarCountBorrowed">0</span></button>
+<button type="button" class="calendar-status-filter status-due" data-calendar-filter="due" onclick="filterSealCalendar('due',this)"><i aria-hidden="true"></i>今日應還 <span id="calendarCountDue">0</span></button>
+<button type="button" class="calendar-status-filter status-overdue" data-calendar-filter="overdue" onclick="filterSealCalendar('overdue',this)"><i aria-hidden="true"></i>已逾期 <span id="calendarCountOverdue">0</span></button>
+<button type="button" class="calendar-status-filter status-returned" data-calendar-filter="returned" onclick="filterSealCalendar('returned',this)"><i aria-hidden="true"></i>已歸還 <span id="calendarCountReturned">0</span></button>
+</div>
+</div>
 <div id="sealCalendar" class="seal-calendar"></div>
 </div>
 </div>
@@ -1434,7 +1448,24 @@ onclick="confirmReturnSeal()">
 
 
 
-    <script defer src="./app.js?v=20260813-v1510-concurrent-borrow"></script>
+<div id="calendarDetailOverlay" class="management-modal-mask calendar-detail-mask" aria-hidden="true" onclick="if(event.target===this) closeCalendarDetail()">
+<section class="management-modal calendar-detail-modal" role="dialog" aria-modal="true" aria-labelledby="calendarDetailTitle">
+<div class="management-modal-head calendar-detail-head">
+<div>
+<div class="calendar-detail-heading-line">
+<h2 id="calendarDetailTitle">借用行程資訊</h2>
+<span id="calendarDetailStatus" class="calendar-detail-status">借用中</span>
+</div>
+<p id="calendarDetailCaption">查看印鑑借用與歸還資訊</p>
+</div>
+<button type="button" class="management-modal-close" onclick="closeCalendarDetail()" aria-label="關閉"><i data-lucide="x"></i></button>
+</div>
+<div id="calendarDetailBody" class="management-modal-body calendar-detail-body"></div>
+<div class="management-modal-actions"><button type="button" class="btn btn-gray" onclick="closeCalendarDetail()">關閉</button></div>
+</section>
+</div>
+
+    <script defer src="./app.js?v=20260814-v1511-calendar-refresh"></script>
 
 </body>
 </html>
