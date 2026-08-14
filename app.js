@@ -3306,8 +3306,8 @@ function renderBorrowPanelState(){
 const title = document.getElementById("borrowPanelTitle");
 const description = document.getElementById("borrowPanelDescription");
 const badge = document.getElementById("borrowModeBadge");
+const selectedName = document.getElementById("borrowSelectedSealName");
 const meta = document.getElementById("borrowedMeta");
-const summary = document.getElementById("borrowSelectionSummary");
 const confirmButton = document.getElementById("confirmBorrowMainButton");
 const editButton = document.getElementById("editBorrowedButton");
 const saveButton = document.getElementById("saveBorrowedButton");
@@ -3367,7 +3367,7 @@ meta.innerHTML = switcherHtml + `
 </div>`;
 
 setBorrowFormDisabled(borrowPanelMode !== "edit");
-summary.innerHTML = `<strong>印鑑：${active.seal}</strong> ・ 借出中`;
+if(selectedName) selectedName.textContent = active.seal || "尚未選擇";
 
 if(borrowPanelMode === "edit"){
 saveButton.classList.remove("hidden");
@@ -3382,6 +3382,7 @@ if(concurrentButton) concurrentButton.classList.remove("hidden");
 }
 
 lucide.createIcons();
+updateBorrowFormProgress();
 return;
 }
 
@@ -3401,22 +3402,42 @@ description.textContent = currentPendingIndex
 meta.classList.add("hidden");
 setBorrowFormDisabled(false);
 confirmButton.classList.remove("hidden");
-confirmButton.disabled = !selectedBorrowSeal;
+confirmButton.disabled = true;
 
 if(selectedBorrowSeal){
 badge.textContent = "可借用";
 badge.className = "badge badge-green";
-summary.innerHTML = `<strong>印鑑：${selectedBorrowSeal}</strong> ・ 可借用`;
+if(selectedName) selectedName.textContent = selectedBorrowSeal;
 document.getElementById("seal").value = selectedBorrowSeal;
 }else{
 badge.className = "badge badge-green hidden";
-summary.textContent = currentPendingIndex
-? "請從左側選擇本次實際借用的印鑑"
-: "尚未選擇印鑑";
+if(selectedName) selectedName.textContent = "尚未選擇";
 document.getElementById("seal").value = "";
 }
 
+updateBorrowFormProgress();
 lucide.createIcons();
+}
+
+function updateBorrowFormProgress(){
+const hasSeal = Boolean((document.getElementById("seal")?.value || "").trim());
+const requiredIds = ["borrower","department","projectNo","formNo","purpose"];
+const formComplete = requiredIds.every(id=>Boolean((document.getElementById(id)?.value || "").trim()));
+const stepSeal = document.getElementById("borrowStepSeal");
+const stepForm = document.getElementById("borrowStepForm");
+const stepConfirm = document.getElementById("borrowStepConfirm");
+const confirmButton = document.getElementById("confirmBorrowMainButton");
+
+stepSeal?.classList.toggle("is-active",!hasSeal);
+stepSeal?.classList.toggle("is-complete",hasSeal);
+stepForm?.classList.toggle("is-active",hasSeal && !formComplete);
+stepForm?.classList.toggle("is-complete",hasSeal && formComplete);
+stepConfirm?.classList.toggle("is-active",hasSeal && formComplete);
+stepConfirm?.classList.remove("is-complete");
+
+if(confirmButton && !confirmButton.classList.contains("hidden")){
+confirmButton.disabled = !(hasSeal && formComplete);
+}
 }
 
 function startInlineBorrowEdit(){
@@ -4106,10 +4127,6 @@ function renderStatus(){
 const list = document.getElementById("statusGrid");
 if(!list) return;
 
-const keyword = (
-document.getElementById("borrowSealSearch")?.value || ""
-).trim().toLowerCase();
-
 const activeForSelected = records.find(record=>
 record.seal===selectedBorrowSeal && !record.returnTime
 );
@@ -4136,9 +4153,7 @@ document.getElementById("seal").value = firstAvailable.name;
 }
 }
 
-const visibleSeals = sealList.filter(seal=>
-!keyword || seal.name.toLowerCase().includes(keyword)
-);
+const visibleSeals = sealList;
 
 list.innerHTML = "";
 
@@ -4872,8 +4887,12 @@ window.deleteDepartment = deleteDepartment;
 window.moveDeptUp = moveDeptUp;
 window.moveDeptDown = moveDeptDown;
 
-document.getElementById("borrowSealSearch")
-.addEventListener("input",renderStatus);
+["borrower","department","projectNo","formNo","purpose","expectedReturnTime"]
+.forEach(id=>{
+const element = document.getElementById(id);
+if(!element) return;
+element.addEventListener(element.tagName === "SELECT" ? "change" : "input",updateBorrowFormProgress);
+});
 
 document.getElementById("searchInput")
 .addEventListener("input",renderTable);
