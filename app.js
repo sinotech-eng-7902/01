@@ -227,6 +227,9 @@ let legacyUserList = [];
 let sharedPeopleLoaded = false;
 let memberEditorMode = "view";
 let editingSharedMemberId = null;
+let baseDataEditType = "";
+let baseDataEditId = "";
+let activeBaseDataSection = "seal";
 let pendingMemberImport = null;
 let memberImportMode = "partial";
 let currentPendingIndex = null;
@@ -567,17 +570,15 @@ table.innerHTML = `
 try{
 
 auditLoading = true;
-const snapshot = await getDocs(buildAuditLogQuery());
-
-snapshot.forEach(docSnap=>{
-auditLogs.push({
-id:docSnap.id,
-...docSnap.data()
-});
-});
-
+const loadingStatus = document.getElementById("auditLoadingStatus");
+if(loadingStatus) loadingStatus.hidden = false;
+let snapshot;
+do{
+snapshot = await getDocs(buildAuditLogQuery());
+snapshot.forEach(docSnap=>auditLogs.push({id:docSnap.id,...docSnap.data()}));
 auditLastDoc = snapshot.docs[snapshot.docs.length - 1] || auditLastDoc;
 auditHasMore = snapshot.size === LOG_BATCH_SIZE;
+}while(auditHasMore);
 
 auditLogs.sort((a,b)=>{
 
@@ -609,21 +610,10 @@ table.innerHTML = `
 
 }finally{
 auditLoading = false;
-renderAuditLoadMore();
+const loadingStatus = document.getElementById("auditLoadingStatus");
+if(loadingStatus) loadingStatus.hidden = true;
 }
 
-}
-
-async function loadMoreAuditLogs(){
-await loadAuditLogs(false);
-}
-
-function renderAuditLoadMore(){
-const button = document.getElementById("auditLoadMoreButton");
-if(!button) return;
-button.hidden = !auditHasMore;
-button.disabled = auditLoading;
-button.textContent = auditLoading ? "載入中..." : "再載入 100 筆";
 }
 
 async function openAuditLogPage(el){
@@ -695,8 +685,7 @@ if(!table) return;
 
 const filtered = getFilteredAuditLogs();
 
-document.getElementById("auditCount").textContent =
-`(${filtered.length}筆)`;
+updateAuditActiveFilters();
 
 const totalPages =
 Math.ceil(filtered.length / auditPageSize);
@@ -827,6 +816,37 @@ loadAuditLogs(true);
 
 }
 
+function renderActiveFilterChips(areaId,items,clearHandler){
+const area = document.getElementById(areaId);
+if(!area) return;
+area.innerHTML = items.map(item=>`<button type="button" class="active-filter-chip" onclick="${clearHandler}('${item.key}')"><span>${escapeHtml(item.label)}</span><i data-lucide="x"></i></button>`).join("");
+area.hidden = items.length === 0;
+if(items.length) lucide.createIcons();
+}
+
+function updateAuditActiveFilters(){
+const items = [];
+const search = document.getElementById("auditSearch")?.value?.trim();
+const action = document.getElementById("auditActionFilter")?.value;
+const start = document.getElementById("auditDateStart")?.value;
+const end = document.getElementById("auditDateEnd")?.value;
+if(search) items.push({key:"search",label:`關鍵字：${search}`});
+if(action) items.push({key:"action",label:`操作：${auditActionLabels[action] || action}`});
+if(start) items.push({key:"start",label:`起日：${start}`});
+if(end) items.push({key:"end",label:`迄日：${end}`});
+renderActiveFilterChips("auditActiveFilters",items,"clearAuditFilter");
+}
+
+function clearAuditFilter(key){
+const map = {search:"auditSearch",action:"auditActionFilter",start:"auditDateStart",end:"auditDateEnd"};
+const target = document.getElementById(map[key]);
+if(target) target.value = "";
+auditCurrentPage = 1;
+if(key === "start" || key === "end") loadAuditLogs(true); else renderAuditLogs();
+}
+
+window.clearAuditFilter = clearAuditFilter;
+
 function buildLoginLogQuery(){
 
 const constraints = [orderBy("loginTime","desc")];
@@ -857,14 +877,15 @@ table.innerHTML = '<tr><td colspan="3">登入紀錄載入中...</td></tr>';
 try{
 
 loginLoading = true;
-const snapshot = await getDocs(buildLoginLogQuery());
-
-snapshot.forEach(docSnap=>{
-loginLogs.push({id:docSnap.id,...docSnap.data()});
-});
-
+const loadingStatus = document.getElementById("loginLoadingStatus");
+if(loadingStatus) loadingStatus.hidden = false;
+let snapshot;
+do{
+snapshot = await getDocs(buildLoginLogQuery());
+snapshot.forEach(docSnap=>loginLogs.push({id:docSnap.id,...docSnap.data()}));
 loginLastDoc = snapshot.docs[snapshot.docs.length - 1] || loginLastDoc;
 loginHasMore = snapshot.size === LOG_BATCH_SIZE;
+}while(loginHasMore);
 renderLoginLogs();
 
 }catch(error){
@@ -876,21 +897,10 @@ table.innerHTML = `<tr><td colspan="3">登入紀錄讀取失敗：${escapeHtml(e
 
 }finally{
 loginLoading = false;
-renderLoginLoadMore();
+const loadingStatus = document.getElementById("loginLoadingStatus");
+if(loadingStatus) loadingStatus.hidden = true;
 }
 
-}
-
-async function loadMoreLoginLogs(){
-await loadLoginLogs(false);
-}
-
-function renderLoginLoadMore(){
-const button = document.getElementById("loginLoadMoreButton");
-if(!button) return;
-button.hidden = !loginHasMore;
-button.disabled = loginLoading;
-button.textContent = loginLoading ? "載入中..." : "再載入 100 筆";
 }
 
 function renderLoginLogs(){
@@ -908,10 +918,7 @@ getFilteredLoginLogs()
 getRecordTime(b.loginTime) - getRecordTime(a.loginTime)
 );
 
-document.getElementById(
-"loginCount"
-).innerText =
-`(${sortedLogs.length}筆)`;
+updateLoginActiveFilters();
 
 const totalPages =
 Math.ceil(
@@ -980,6 +987,27 @@ document.getElementById("loginDateEnd").value = "";
 loginCurrentPage = 1;
 renderLoginLogs();
 }
+
+function updateLoginActiveFilters(){
+const items = [];
+const search = document.getElementById("loginSearch")?.value?.trim();
+const start = document.getElementById("loginDateStart")?.value;
+const end = document.getElementById("loginDateEnd")?.value;
+if(search) items.push({key:"search",label:`關鍵字：${search}`});
+if(start) items.push({key:"start",label:`起日：${start}`});
+if(end) items.push({key:"end",label:`迄日：${end}`});
+renderActiveFilterChips("loginActiveFilters",items,"clearLoginFilter");
+}
+
+function clearLoginFilter(key){
+const map = {search:"loginSearch",start:"loginDateStart",end:"loginDateEnd"};
+const target = document.getElementById(map[key]);
+if(target) target.value = "";
+loginCurrentPage = 1;
+renderLoginLogs();
+}
+
+window.clearLoginFilter = clearLoginFilter;
 
 function changeLoginPageSize(){
 
@@ -1097,6 +1125,7 @@ return String(a.employeeNo || "").localeCompare(String(b.employeeNo || ""),"zh-H
 });
 
 renderPermissionMemberOptions();
+await detectLegacyPermissionCandidates();
 renderUserList();
 
 }catch(error){
@@ -1134,13 +1163,24 @@ window.updateNewPermissionRoleHelp = updateNewPermissionRoleHelp;
 
 function populateMemberDepartmentOptions(){
 const select = document.getElementById("memberDepartment");
-if(!select) return;
+const filter = document.getElementById("memberDepartmentFilter");
+const availableDepartments = departmentList.filter(department=>department.active !== false);
+if(select){
 const current = select.value;
-select.innerHTML = '<option value="">請選擇部門</option>' + departmentList.map(department=>{
+select.innerHTML = '<option value="">請選擇部門</option>' + availableDepartments.map(department=>{
 const name = department.name || department.departmentName || department.department || "";
 return `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`;
 }).join("");
 if(current && [...select.options].some(option=>option.value === current)) select.value = current;
+}
+if(filter){
+const currentFilter = filter.value;
+filter.innerHTML = '<option value="all">全部部門</option>' + departmentList.map(department=>{
+const name = department.name || department.departmentName || department.department || "";
+return `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`;
+}).join("");
+if(currentFilter && [...filter.options].some(option=>option.value === currentFilter)) filter.value = currentFilter;
+}
 }
 
 async function loadMemberManagement(force=false){
@@ -1164,10 +1204,12 @@ if(!area || !summary) return;
 
 const search = normalizeEmail(document.getElementById("memberSearch")?.value || "");
 const status = document.getElementById("memberStatusFilter")?.value || "all";
+const departmentFilter = document.getElementById("memberDepartmentFilter")?.value || "all";
 const filtered = memberList.filter(member=>{
 const active = member.active !== false;
 if(status === "active" && !active) return false;
 if(status === "inactive" && active) return false;
+if(departmentFilter !== "all" && memberDepartmentName(member) !== departmentFilter) return false;
 if(!search) return true;
 return [memberDepartmentName(member),member.name,memberEmployeeNo(member),memberGoogleEmail(member)]
 .some(value=>String(value || "").toLowerCase().includes(search));
@@ -1189,7 +1231,7 @@ return;
 area.innerHTML = `<div class="table-wrap"><table class="management-table"><thead><tr><th>部門</th><th>姓名</th><th>員工編號</th><th>Google 帳號</th><th>狀態</th><th>操作</th></tr></thead><tbody>${filtered.map(member=>{
 const active = member.active !== false;
 const email = memberGoogleEmail(member);
-return `<tr><td>${escapeHtml(memberDepartmentName(member) || "未設定")}</td><td><b>${escapeHtml(member.name || "")}</b></td><td>${escapeHtml(memberEmployeeNo(member))}</td><td>${email ? escapeHtml(email) : '<span class="muted-text">未設定</span>'}</td><td><span class="status-badge ${active ? 'status-active' : 'status-inactive'}">${active ? '啟用' : '停用'}</span></td><td class="operation-cell"><button class="btn btn-gray btn-sm" type="button" onclick="editSharedMember('${member.id}')">修改</button><button class="btn ${active ? 'btn-gray' : 'btn-primary'} btn-sm btn-inline" type="button" onclick="toggleSharedMember('${member.id}',${active ? 'false' : 'true'})">${active ? '停用' : '啟用'}</button><button class="btn btn-danger-outline btn-sm" type="button" onclick="deleteSharedMember('${member.id}')">刪除</button></td></tr>`;
+return `<tr class="${active ? '' : 'is-inactive'}"><td>${escapeHtml(memberDepartmentName(member) || "未設定")}</td><td><b>${escapeHtml(member.name || "")}</b></td><td>${escapeHtml(memberEmployeeNo(member))}</td><td>${email ? escapeHtml(email) : '<span class="account-missing-badge">尚未設定</span>'}</td><td><span class="status-badge ${active ? 'status-active' : 'status-inactive'}">${active ? '啟用' : '停用'}</span></td><td class="operation-cell"><button class="btn btn-gray btn-sm" type="button" onclick="editSharedMember('${member.id}')">修改</button><button class="btn ${active ? 'btn-gray' : 'btn-primary'} btn-sm btn-inline" type="button" onclick="toggleSharedMember('${member.id}',${active ? 'false' : 'true'})">${active ? '停用' : '啟用'}</button><button class="btn btn-danger-outline btn-sm" type="button" onclick="deleteSharedMember('${member.id}')">刪除</button></td></tr>`;
 }).join("")}</tbody></table></div>`;
 }
 
@@ -1211,6 +1253,8 @@ document.getElementById("memberEditorBadge").textContent = "新增模式";
 document.getElementById("memberSaveButton").textContent = "新增人員";
 fillSharedMemberForm(null);
 document.getElementById("memberEditor").classList.remove("hidden");
+document.getElementById("memberEditor").setAttribute("aria-hidden","false");
+document.body.classList.add("modal-open");
 document.getElementById("memberName").focus();
 }
 
@@ -1226,13 +1270,17 @@ document.getElementById("memberSaveButton").textContent = "儲存變更";
 fillSharedMemberForm(member);
 const editor = document.getElementById("memberEditor");
 editor.classList.remove("hidden");
-editor.scrollIntoView({behavior:"smooth",block:"start"});
+editor.setAttribute("aria-hidden","false");
+document.body.classList.add("modal-open");
+document.getElementById("memberName").focus();
 }
 
 function cancelSharedMemberEdit(){
 memberEditorMode = "view";
 editingSharedMemberId = null;
 document.getElementById("memberEditor")?.classList.add("hidden");
+document.getElementById("memberEditor")?.setAttribute("aria-hidden","true");
+document.body.classList.remove("modal-open");
 }
 
 async function migrateSealPermissionEmail(memberId,oldEmail,newEmail){
@@ -1559,7 +1607,8 @@ function showPage(pageId,el){
 const adminPages = [
 "permissionPage",
 "loginLogPage",
-"auditLogPage"
+"auditLogPage",
+"baseDataPage"
 ];
 
 if(pageId === "memberPage" && !currentIsSystemAdmin){
@@ -1600,7 +1649,7 @@ el = document.querySelector(
 
 document
 .querySelectorAll(
-"#borrowPage,#pendingPage,#returnPage,#historyPage,#sealPage,#deptPage,#memberPage,#permissionPage,#loginLogPage,#auditLogPage,#calendarPage"
+"#borrowPage,#pendingPage,#returnPage,#historyPage,#baseDataPage,#memberPage,#permissionPage,#loginLogPage,#auditLogPage,#calendarPage"
 )
 .forEach(page=>page.classList.add("hidden"));
 
@@ -1634,16 +1683,38 @@ if(pageId === "loginLogPage" && isAdminRole()){
 loadLoginLogs(true);
 }
 
+if(pageId === "baseDataPage" && isAdminRole()){
+showBaseDataSection(activeBaseDataSection);
+}
+
+}
+
+function openBaseDataPage(el){
+showPage("baseDataPage",el);
+showBaseDataSection(activeBaseDataSection);
+}
+
+function showBaseDataSection(type="seal",button=null){
+activeBaseDataSection = type === "department" ? "department" : "seal";
+const isSeal = activeBaseDataSection === "seal";
+document.getElementById("baseDataSealSection")?.classList.toggle("hidden",!isSeal);
+document.getElementById("baseDataDepartmentSection")?.classList.toggle("hidden",isSeal);
+document.querySelectorAll(".base-data-tab").forEach(tab=>{
+const selected = tab.id === (isSeal ? "baseDataSealTab" : "baseDataDeptTab");
+tab.classList.toggle("active",selected);
+tab.setAttribute("aria-selected",String(selected));
+});
+if(button && !button.classList.contains("active")) button.classList.add("active");
 }
 
 window.showPage = showPage;
+window.openBaseDataPage = openBaseDataPage;
+window.showBaseDataSection = showBaseDataSection;
 window.loadAuditLogs = loadAuditLogs;
 window.openAuditLogPage = openAuditLogPage;
 window.changeAuditPageSize = changeAuditPageSize;
 window.resetAuditFilter = resetAuditFilter;
-window.loadMoreAuditLogs = loadMoreAuditLogs;
 window.loadLoginLogs = loadLoginLogs;
-window.loadMoreLoginLogs = loadMoreLoginLogs;
 
 function restoreLastPage(){
 
@@ -1687,9 +1758,9 @@ function restoreLastPage(){
     const targetMenu =
     lastPage === "auditLogPage"
     ? document.getElementById("auditLogMenu")
-    : document.querySelector(
-        `[onclick*="${lastPage}"]`
-    );
+    : lastPage === "baseDataPage"
+    ? document.getElementById("baseDataMenu")
+    : document.querySelector(`[onclick*="${lastPage}"]`);
 
     if(targetMenu){
 
@@ -1798,7 +1869,7 @@ document.getElementById("pendingDepartment");
 deptSelect.innerHTML =
 '<option value="">請選擇部門</option>';
 
-departmentList.forEach(dept=>{
+departmentList.filter(dept=>dept.active !== false).forEach(dept=>{
 
 deptSelect.innerHTML += `
 <option value="${dept.name}">
@@ -2166,7 +2237,7 @@ document.getElementById(
 deptSelect.innerHTML =
 '<option value="">請選擇部門</option>';
 
-departmentList.forEach(dept=>{
+departmentList.filter(dept=>dept.active !== false).forEach(dept=>{
 
 deptSelect.innerHTML += `
 <option value="${dept.name}">
@@ -2371,6 +2442,29 @@ await loadUsers();
 
 window.migrateLegacySealPermissions = migrateLegacySealPermissions;
 
+async function detectLegacyPermissionCandidates(){
+const details = document.getElementById("permissionMigrationDetails");
+if(!details) return;
+try{
+const legacySnapshot = await getDocs(collection(db,"users"));
+legacyUserList = legacySnapshot.docs.map(docSnap=>({id:docSnap.id,...docSnap.data()}));
+const existing = new Set(userList.map(user=>normalizeEmail(user.email)));
+const memberEmails = new Set(memberList.map(memberGoogleEmail).filter(Boolean));
+const count = legacyUserList.filter(user=>{
+const email = normalizeEmail(user.email);
+return email && user.enabled !== false && memberEmails.has(email) && !existing.has(email);
+}).length;
+details.hidden = count === 0;
+if(count){
+const summary = details.querySelector("summary");
+if(summary) summary.textContent = `偵測到 ${count} 筆舊權限可移轉`;
+}
+}catch(error){
+details.hidden = true;
+console.warn("檢查舊權限移轉資料失敗",error);
+}
+}
+
 function renderUserList(){
 
 const area =
@@ -2382,32 +2476,53 @@ if(!area) return;
 
 area.innerHTML = "";
 
+const keyword = (document.getElementById("permissionSearch")?.value || "").trim().toLowerCase();
+const roleFilter = document.getElementById("permissionRoleFilter")?.value || "all";
+const statusFilter = document.getElementById("permissionStatusFilter")?.value || "all";
+const filteredUsers = userList.filter(user=>{
+const role = normalizeRole(user.role);
+const enabled = user.enabled !== false;
+if(roleFilter !== "all" && role !== roleFilter) return false;
+if(statusFilter === "active" && !enabled) return false;
+if(statusFilter === "inactive" && enabled) return false;
+if(!keyword) return true;
+return [user.departmentName,user.employeeName,user.employeeNo,user.email,getSystemRoleLabel(role)]
+.some(value=>String(value || "").toLowerCase().includes(keyword));
+});
+
 if(!userList.length){
 area.innerHTML = '<div class="permission-empty-state"><i data-lucide="user-round-plus"></i><strong>尚未設定印鑑系統權限</strong><span>請從上方共用人員名單選擇成員並設定角色。</span></div>';
 lucide.createIcons();
 return;
 }
 
-const rows = userList.map((user,index)=>{
+if(!filteredUsers.length){
+area.innerHTML = '<div class="permission-empty-state"><i data-lucide="search-x"></i><strong>查無符合條件的權限</strong><span>請調整搜尋文字、角色或狀態篩選。</span></div>';
+lucide.createIcons();
+return;
+}
+
+const rows = filteredUsers.map((user,index)=>{
 const role = normalizeRole(user.role);
 const department = escapeHtml(user.departmentName || "未設定部門");
 const name = escapeHtml(user.employeeName || "未對應共用人員");
 const employeeNo = escapeHtml(user.employeeNo || "未設定");
 const email = escapeHtml(user.email || "");
 const selectId = `permissionRole_${index}`;
+const saveId = `permissionSave_${index}`;
 const memberNotice = user.memberActive === false
 ? '<small class="permission-member-warning">共用人員已停用</small>'
 : user.memberActive === null
 ? `<small class="permission-member-warning">未對應共用人員${email ? `｜${email}` : ""}</small>`
 : "";
 
-return `<tr>
+return `<tr id="permissionRow_${index}" class="${user.enabled === false ? 'is-inactive' : ''}">
 <td>${department}</td>
 <td><div class="identity-cell"><strong>${name}</strong>${memberNotice}</div></td>
 <td>${employeeNo}</td>
 <td>
 <div class="permission-role-cell">
-<select id="${selectId}" aria-label="${department} ${name} 的印鑑系統角色">
+<select id="${selectId}" data-original-role="${role}" onchange="markPermissionDirty('${selectId}','${saveId}','permissionRow_${index}')" aria-label="${department} ${name} 的印鑑系統角色">
 <option value="user" ${role === "user" ? "selected" : ""}>一般使用者</option>
 <option value="viewer" ${role === "viewer" ? "selected" : ""}>檢視者</option>
 <option value="admin" ${role === "admin" ? "selected" : ""}>系統管理員</option>
@@ -2422,9 +2537,9 @@ ${isLastEnabledSealAdmin(user) ? '<small>唯一啟用管理員</small>' : ""}
 </td>
 <td>
 <div class="operation-cell permission-operation-cell">
-<button type="button" class="btn btn-gray btn-sm" onclick="updatePermissionRole('${user.id}','${selectId}')">更新</button>
-<button type="button" class="btn btn-gray btn-sm" onclick="toggleUser('${user.id}',${user.enabled !== false})">${user.enabled !== false ? "停用" : "啟用"}</button>
-<button type="button" class="btn btn-danger-outline btn-sm" onclick="deleteUser('${user.id}')">移除</button>
+<button id="${saveId}" type="button" class="btn btn-primary btn-sm" onclick="updatePermissionRole('${user.id}','${selectId}')" disabled>儲存變更</button>
+<button type="button" class="btn btn-gray btn-sm" onclick="toggleUser('${user.id}',${user.enabled !== false})">${user.enabled !== false ? "停用權限" : "啟用權限"}</button>
+<button type="button" class="btn btn-danger-outline btn-sm" onclick="deleteUser('${user.id}')">移除權限</button>
 </div>
 </td>
 </tr>`;
@@ -2440,6 +2555,29 @@ area.innerHTML = `<div class="table-wrap permission-table-wrap">
 lucide.createIcons();
 
 }
+
+function markPermissionDirty(selectId,saveId,rowId){
+const select = document.getElementById(selectId);
+const save = document.getElementById(saveId);
+const row = document.getElementById(rowId);
+if(!select || !save) return;
+const dirty = select.value !== select.dataset.originalRole;
+save.disabled = !dirty;
+row?.classList.toggle("permission-dirty",dirty);
+}
+
+function resetPermissionFilters(){
+const search = document.getElementById("permissionSearch");
+const role = document.getElementById("permissionRoleFilter");
+const status = document.getElementById("permissionStatusFilter");
+if(search) search.value = "";
+if(role) role.value = "all";
+if(status) status.value = "all";
+renderUserList();
+}
+
+window.markPermissionDirty = markPermissionDirty;
+window.resetPermissionFilters = resetPermissionFilters;
 
 function renderPendingTable(){
 
@@ -2665,7 +2803,8 @@ departmentList.push({
 
 id:docSnap.id,
 name:data.name,
-sortOrder:Number(data.sortOrder || 999)
+sortOrder:Number(data.sortOrder || 999),
+active:data.active !== false
 
 });
 
@@ -2688,7 +2827,7 @@ document.getElementById("department");
 select.innerHTML =
 `<option value="">請選擇部門</option>`;
 
-departmentList.forEach(dept=>{
+departmentList.filter(dept=>dept.active !== false).forEach(dept=>{
 
 select.innerHTML += `
 <option value="${dept.name}">
@@ -2711,11 +2850,17 @@ area.innerHTML = '<div class="table-empty-cell">尚未建立部門</div>';
 return;
 }
 
-area.innerHTML = `<div class="table-wrap"><table class="management-table master-table"><thead><tr><th>部門名稱</th><th>顯示順序</th><th>操作</th></tr></thead><tbody>${departmentList.map((dept,index)=>`
-<tr>
+const countBadge = document.getElementById("departmentCountBadge");
+if(countBadge) countBadge.textContent = `${departmentList.filter(item=>item.active !== false).length} 個啟用`;
+
+area.innerHTML = `<div class="table-wrap"><table class="management-table master-table"><thead><tr><th>部門名稱</th><th>狀態</th><th>顯示順序</th><th>操作</th></tr></thead><tbody>${departmentList.map((dept,index)=>`
+<tr class="${dept.active === false ? 'is-inactive' : ''}">
 <td class="master-name-cell"><strong>${escapeHtml(dept.name || "未命名部門")}</strong></td>
+<td><span class="status-badge ${dept.active === false ? 'status-inactive' : 'status-active'}">${dept.active === false ? '停用' : '啟用'}</span></td>
 <td><span class="master-order-badge">${escapeHtml(dept.sortOrder ?? index + 1)}</span></td>
 <td class="operation-cell master-actions">
+<button type="button" class="btn btn-gray btn-sm" onclick="openBaseDataEdit('department','${dept.id}')">修改</button>
+<button type="button" class="btn btn-gray btn-sm" onclick="toggleBaseDataActive('department','${dept.id}',${dept.active !== false})">${dept.active === false ? '啟用' : '停用'}</button>
 <button type="button" class="icon-button" title="上移" aria-label="上移 ${escapeHtml(dept.name || "部門")}" onclick="moveDeptUp('${dept.id}')" ${index === 0 ? "disabled" : ""}><i data-lucide="arrow-up"></i></button>
 <button type="button" class="icon-button" title="下移" aria-label="下移 ${escapeHtml(dept.name || "部門")}" onclick="moveDeptDown('${dept.id}')" ${index === departmentList.length - 1 ? "disabled" : ""}><i data-lucide="arrow-down"></i></button>
 <button type="button" class="btn btn-danger-outline btn-sm" onclick="deleteDepartment('${dept.id}')">刪除</button>
@@ -2840,7 +2985,8 @@ const newDepartmentRef =
 await addDoc(collection(db,"departments"),{
 
 name:name,
-sortOrder:order
+sortOrder:order,
+active:true
 
 });
 
@@ -2851,7 +2997,8 @@ targetId:newDepartmentRef.id,
 targetLabel:name,
 after:{
 name,
-sortOrder:order
+sortOrder:order,
+active:true
 }
 });
 
@@ -2864,6 +3011,80 @@ await loadDepartments();
 
 }
 
+async function isBaseDataReferenced(type,name){
+if(!name) return false;
+const checks = type === "seal"
+? [["sealRecords","seal"]]
+: [["sealRecords","department"],["pendingRecords","department"],["members","department"]];
+for(const [collectionName,field] of checks){
+const snapshot = await getDocs(query(collection(db,collectionName),where(field,"==",name),limit(1)));
+if(!snapshot.empty) return true;
+}
+return false;
+}
+
+function openBaseDataEdit(type,id){
+const list = type === "seal" ? sealList : departmentList;
+const item = list.find(entry=>entry.id === id);
+const overlay = document.getElementById("baseDataEditOverlay");
+if(!item || !overlay) return;
+baseDataEditType = type;
+baseDataEditId = id;
+document.getElementById("baseDataEditTitle").textContent = type === "seal" ? "修改印鑑" : "修改部門";
+document.getElementById("baseDataEditCaption").textContent = "已被使用的名稱為保護歷史資料將無法改名，但仍可調整顯示順序。";
+document.getElementById("baseDataEditName").value = item.name || "";
+document.getElementById("baseDataEditOrder").value = item.sortOrder || "";
+overlay.classList.add("open");
+overlay.setAttribute("aria-hidden","false");
+document.body.classList.add("modal-open");
+document.getElementById("baseDataEditName").focus();
+}
+
+function closeBaseDataEdit(){
+const overlay = document.getElementById("baseDataEditOverlay");
+overlay?.classList.remove("open");
+overlay?.setAttribute("aria-hidden","true");
+document.body.classList.remove("modal-open");
+baseDataEditType = "";
+baseDataEditId = "";
+}
+
+async function saveBaseDataEdit(){
+if(blockViewerAction()) return;
+const type = baseDataEditType;
+const id = baseDataEditId;
+const list = type === "seal" ? sealList : departmentList;
+const item = list.find(entry=>entry.id === id);
+const name = document.getElementById("baseDataEditName")?.value.trim() || "";
+const sortOrder = Number(document.getElementById("baseDataEditOrder")?.value);
+if(!item || !name || !Number.isFinite(sortOrder) || sortOrder < 1) return alert("請完整填寫名稱與有效的顯示順序");
+if(list.some(entry=>entry.id !== id && String(entry.name).trim() === name)) return alert("已有相同名稱，請使用不同名稱");
+if(item.name !== name && await isBaseDataReferenced(type,item.name)) return alert("此名稱已有相關紀錄，為保護歷史資料不可直接改名；可改用停用後新增新名稱。");
+const collectionName = type === "seal" ? "seals" : "departments";
+const before = {...item};
+await updateDoc(doc(db,collectionName,id),{name,sortOrder,updatedAt:Timestamp.now(),updatedByEmail:normalizeEmail(currentUserEmail)});
+await writeAuditLog({action:"update",category:type,targetId:id,targetLabel:name,before,after:{...item,name,sortOrder}});
+closeBaseDataEdit();
+await (type === "seal" ? loadSeals() : loadDepartments());
+}
+
+async function toggleBaseDataActive(type,id,currentlyActive){
+if(blockViewerAction()) return;
+const list = type === "seal" ? sealList : departmentList;
+const item = list.find(entry=>entry.id === id);
+if(!item) return;
+const nextActive = !currentlyActive;
+const collectionName = type === "seal" ? "seals" : "departments";
+await updateDoc(doc(db,collectionName,id),{active:nextActive,updatedAt:Timestamp.now(),updatedByEmail:normalizeEmail(currentUserEmail)});
+await writeAuditLog({action:"update",category:type,targetId:id,targetLabel:item.name,before:{active:currentlyActive},after:{active:nextActive}});
+await (type === "seal" ? loadSeals() : loadDepartments());
+}
+
+window.openBaseDataEdit = openBaseDataEdit;
+window.closeBaseDataEdit = closeBaseDataEdit;
+window.saveBaseDataEdit = saveBaseDataEdit;
+window.toggleBaseDataActive = toggleBaseDataActive;
+
 async function deleteDepartment(id){
 
 if(blockViewerAction()) return;
@@ -2871,7 +3092,14 @@ if(blockViewerAction()) return;
 const department =
 departmentList.find(item=>item.id===id);
 
-if(!confirm(`確定刪除部門「${department?.name || id}」？\n若仍有人員使用此部門，建議先確認人員資料後再刪除。`)) return;
+const referenced = await isBaseDataReferenced("department",department?.name || "");
+if(referenced){
+if(!confirm(`部門「${department?.name || id}」已有使用紀錄，無法直接刪除。\n是否改為停用？既有歷史資料將完整保留。`)) return;
+await toggleBaseDataActive("department",id,true);
+return;
+}
+
+if(!confirm(`確定刪除尚未使用的部門「${department?.name || id}」？`)) return;
 
 await deleteDoc(doc(db,"departments",id));
 
@@ -2906,7 +3134,8 @@ sealList.push({
 
 id:docSnap.id,
 name:data.name,
-sortOrder:Number(data.sortOrder || 999)
+sortOrder:Number(data.sortOrder || 999),
+active:data.active !== false
 
 });
 
@@ -2931,7 +3160,7 @@ document.getElementById("seal");
 select.innerHTML =
 `<option value="">請選擇</option>`;
 
-sealList.forEach(seal=>{
+sealList.filter(seal=>seal.active !== false).forEach(seal=>{
 
 select.innerHTML += `
 <option value="${seal.name}">
@@ -2974,11 +3203,17 @@ area.innerHTML = '<div class="table-empty-cell">尚未建立印鑑</div>';
 return;
 }
 
-area.innerHTML = `<div class="table-wrap"><table class="management-table master-table"><thead><tr><th>印鑑名稱</th><th>顯示順序</th><th>操作</th></tr></thead><tbody>${sealList.map((seal,index)=>`
-<tr>
+const countBadge = document.getElementById("sealCountBadge");
+if(countBadge) countBadge.textContent = `${sealList.filter(item=>item.active !== false).length} 組啟用`;
+
+area.innerHTML = `<div class="table-wrap"><table class="management-table master-table"><thead><tr><th>印鑑名稱</th><th>狀態</th><th>顯示順序</th><th>操作</th></tr></thead><tbody>${sealList.map((seal,index)=>`
+<tr class="${seal.active === false ? 'is-inactive' : ''}">
 <td class="master-name-cell"><strong>${escapeHtml(seal.name || "未命名印鑑")}</strong></td>
+<td><span class="status-badge ${seal.active === false ? 'status-inactive' : 'status-active'}">${seal.active === false ? '停用' : '啟用'}</span></td>
 <td><span class="master-order-badge">${escapeHtml(seal.sortOrder ?? index + 1)}</span></td>
 <td class="operation-cell master-actions">
+<button type="button" class="btn btn-gray btn-sm" onclick="openBaseDataEdit('seal','${seal.id}')">修改</button>
+<button type="button" class="btn btn-gray btn-sm" onclick="toggleBaseDataActive('seal','${seal.id}',${seal.active !== false})">${seal.active === false ? '啟用' : '停用'}</button>
 <button type="button" class="icon-button" title="上移" aria-label="上移 ${escapeHtml(seal.name || "印鑑")}" onclick="moveUp('${seal.id}')" ${index === 0 ? "disabled" : ""}><i data-lucide="arrow-up"></i></button>
 <button type="button" class="icon-button" title="下移" aria-label="下移 ${escapeHtml(seal.name || "印鑑")}" onclick="moveDown('${seal.id}')" ${index === sealList.length - 1 ? "disabled" : ""}><i data-lucide="arrow-down"></i></button>
 <button type="button" class="btn btn-danger-outline btn-sm" onclick="deleteSeal('${seal.id}')">刪除</button>
@@ -3103,7 +3338,8 @@ const newSealRef =
 await addDoc(collection(db,"seals"),{
 
 name:name,
-sortOrder:order
+sortOrder:order,
+active:true
 
 });
 
@@ -3114,7 +3350,8 @@ targetId:newSealRef.id,
 targetLabel:name,
 after:{
 name,
-sortOrder:order
+sortOrder:order,
+active:true
 }
 });
 
@@ -3134,7 +3371,14 @@ if(blockViewerAction()) return;
 const seal =
 sealList.find(item=>item.id===id);
 
-if(!confirm(`確定刪除印鑑「${seal?.name || id}」？\n歷史借用紀錄會保留，但後續將無法再選擇此印鑑。`)) return;
+const referenced = await isBaseDataReferenced("seal",seal?.name || "");
+if(referenced){
+if(!confirm(`印鑑「${seal?.name || id}」已有借用紀錄，無法直接刪除。\n是否改為停用？既有歷史資料將完整保留。`)) return;
+await toggleBaseDataActive("seal",id,true);
+return;
+}
+
+if(!confirm(`確定刪除尚未使用的印鑑「${seal?.name || id}」？`)) return;
 
 await deleteDoc(doc(db,"seals",id));
 
@@ -3164,7 +3408,7 @@ borrowPanelMode = "new";
 concurrentBorrowMode = false;
 
 const firstAvailable = sealList.find(seal=>
-!records.some(record=>record.seal===seal.name && !record.returnTime)
+seal.active !== false && !records.some(record=>record.seal===seal.name && !record.returnTime)
 );
 
 selectedBorrowSeal = firstAvailable?.name || "";
@@ -4138,7 +4382,7 @@ document.getElementById("seal").value = firstAvailable.name;
 }
 }
 
-const visibleSeals = sealList;
+const visibleSeals = sealList.filter(seal=>seal.active !== false);
 
 list.innerHTML = "";
 

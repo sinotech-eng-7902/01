@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>印鑑借用管理系統 v15.13</title>
+<title>印鑑借用管理系統 v15.14</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./styles.css?v=20260814-v1513-history-pagination">
+<link rel="stylesheet" href="./styles.css?v=20260815-v1514-admin-unified-r2">
 
 <script defer src="https://unpkg.com/lucide@latest"></script>
 
@@ -108,11 +108,8 @@ transition:.15s;
             </button>
             <div class="top-dropdown">
                 <div class="top-dropdown-section-label">基礎設定</div>
-                <div class="menu-item" data-tooltip="印鑑維護" onclick="showPage('sealPage',this)">
-                    <i data-lucide="badge-check" class="menu-icon"></i><span>印鑑維護</span>
-                </div>
-                <div class="menu-item" data-tooltip="部門維護" onclick="showPage('deptPage',this)">
-                    <i data-lucide="building-2" class="menu-icon"></i><span>部門維護</span>
+                <div id="baseDataMenu" class="menu-item" data-tooltip="基礎資料設定" onclick="openBaseDataPage(this)">
+                    <i data-lucide="database" class="menu-icon"></i><span>基礎資料設定</span>
                 </div>
                 <div class="top-dropdown-section-label">帳號與權限</div>
                 <div class="menu-item" id="memberMenu" data-tooltip="人員管理" onclick="showPage('memberPage',this)">
@@ -722,18 +719,16 @@ class="detail-title-icon">
 
 操作紀錄
 
-<span id="auditCount">
-(0筆)
-</span>
-
 </h2>
 
-<div class="audit-toolbar">
+<p class="page-description">查詢系統內的重要新增、修改、刪除與權限異動。</p>
 
-<input
+<div class="management-filter-toolbar audit-toolbar">
+
+<div class="management-search-input"><i data-lucide="search"></i><input
 type="text"
 id="auditSearch"
-placeholder="搜尋操作者、Email、印鑑或案件資料">
+placeholder="搜尋操作者、Email、印鑑或案件資料"></div>
 
 <select id="auditActionFilter">
 <option value="">全部操作</option>
@@ -759,10 +754,12 @@ placeholder="搜尋操作者、Email、印鑑或案件資料">
 type="button"
 class="btn btn-gray"
 onclick="resetAuditFilter()">
-重設
+<i data-lucide="rotate-ccw"></i><span>清除條件</span>
 </button>
 
 </div>
+
+<div id="auditActiveFilters" class="management-active-filters" aria-live="polite"></div>
 
 <div class="table-wrap">
 
@@ -798,17 +795,7 @@ onclick="resetAuditFilter()">
 </select>
 </div>
 
-<div class="log-pagination-actions">
-<button
-type="button"
-id="auditLoadMoreButton"
-class="btn btn-gray"
-onclick="loadMoreAuditLogs()"
-hidden>
-再載入 100 筆
-</button>
-<div id="auditPagination"></div>
-</div>
+<div class="log-pagination-actions"><div id="auditLoadingStatus" class="history-loading-status" hidden><span class="history-loading-dot" aria-hidden="true"></span>正在讀取完整操作紀錄</div><div id="auditPagination"></div></div>
 
 </div>
 
@@ -816,106 +803,47 @@ hidden>
 
 </div>
 
-<!-- 印鑑維護 -->
-
-<div id="sealPage" class="hidden">
-
+<!-- 基礎資料設定 -->
+<div id="baseDataPage" class="hidden">
 <div class="panel">
+<div class="page-heading">
+<div class="page-heading-main">
+<h2 class="detail-title"><i data-lucide="database" class="detail-title-icon"></i>基礎資料設定</h2>
+<p class="page-description">集中管理印鑑與部門名稱、啟用狀態及顯示順序。</p>
+</div>
+</div>
+<div class="section-divider"></div>
+<div class="base-data-tabs" role="tablist" aria-label="基礎資料類別">
+<button type="button" id="baseDataSealTab" class="base-data-tab active" role="tab" aria-selected="true" onclick="showBaseDataSection('seal',this)"><i data-lucide="badge-check"></i><span>印鑑設定</span><b id="sealCountBadge">0</b></button>
+<button type="button" id="baseDataDeptTab" class="base-data-tab" role="tab" aria-selected="false" onclick="showBaseDataSection('department',this)"><i data-lucide="building-2"></i><span>部門設定</span><b id="departmentCountBadge">0</b></button>
+</div>
 
-<h2 class="detail-title">
-
-<i
-data-lucide="badge-check"
-class="detail-title-icon">
-</i>
-
-印鑑維護
-
-</h2>
-
-<p class="page-description">新增印鑑並管理顯示順序</p>
-
+<section id="baseDataSealSection" class="base-data-section">
+<div class="base-data-section-head"><div><h3>印鑑設定</h3><p>停用後不再出現在新借用選項，既有紀錄仍會保留。</p></div></div>
+<details class="base-data-create-details">
+<summary><i data-lucide="circle-plus"></i><span>新增印鑑</span></summary>
 <div class="compact-create-row compact-create-row-two">
-
-<div class="form-group">
-<label>印鑑名稱</label>
-<input type="text" id="newSeal">
+<div class="form-group"><label>印鑑名稱</label><input type="text" id="newSeal" placeholder="例如：大小章(1)"></div>
+<div class="form-group"><label>顯示順序</label><input type="number" id="newOrder" placeholder="例如：1"><small>數字越小，顯示順序越前面。</small></div>
+<button type="button" class="btn btn-primary btn-inline" onclick="addSeal()"><i data-lucide="circle-plus"></i><span>新增印鑑</span></button>
 </div>
-
-<div class="form-group">
-<label>顯示順序</label>
-<input type="number" id="newOrder">
-</div>
-
-<button type="button"
-class="btn btn-primary btn-inline"
-onclick="addSeal()">
-
-<i data-lucide="circle-plus"></i>
-
-<span>
-新增印鑑
-</span>
-
-</button>
-
-</div>
-
+</details>
 <div id="sealListArea"></div>
+</section>
 
-</div>
-
-</div>
-
-<!-- 部門維護 -->
-
-<div id="deptPage" class="hidden">
-
-<div class="panel">
-
-<h2 class="detail-title">
-
-<i
-data-lucide="building-2"
-class="detail-title-icon">
-</i>
-
-部門維護
-
-</h2>
-
-<p class="page-description">新增部門並管理顯示順序</p>
-
+<section id="baseDataDepartmentSection" class="base-data-section hidden">
+<div class="base-data-section-head"><div><h3>部門設定</h3><p>停用後不再出現在新建資料選項，歷史紀錄及共用人員資料不受影響。</p></div></div>
+<details class="base-data-create-details">
+<summary><i data-lucide="circle-plus"></i><span>新增部門</span></summary>
 <div class="compact-create-row compact-create-row-two">
-
-<div class="form-group">
-<label>部門名稱</label>
-<input type="text" id="newDept">
+<div class="form-group"><label>部門名稱</label><input type="text" id="newDept" placeholder="例如：行政部"></div>
+<div class="form-group"><label>顯示順序</label><input type="number" id="newDeptOrder" placeholder="例如：1"><small>數字越小，顯示順序越前面。</small></div>
+<button type="button" class="btn btn-primary btn-inline" onclick="addDepartment()"><i data-lucide="circle-plus"></i><span>新增部門</span></button>
 </div>
-
-<div class="form-group">
-<label>顯示順序</label>
-<input type="number" id="newDeptOrder">
-</div>
-
-<button type="button"
-class="btn btn-primary btn-inline"
-onclick="addDepartment()">
-
-<i data-lucide="circle-plus"></i>
-
-<span>
-新增部門
-</span>
-
-</button>
-
-</div>
-
+</details>
 <div id="deptListArea"></div>
-
+</section>
 </div>
-
 </div>
 
 <!-- 共用人員管理 -->
@@ -931,15 +859,18 @@ onclick="addDepartment()">
 </div>
 <div class="member-toolbar-actions">
 <button type="button" class="btn btn-primary btn-inline" onclick="startNewSharedMember()"><i data-lucide="user-plus"></i><span>新增人員</span></button>
-<button type="button" class="btn btn-gray" onclick="chooseMemberImport()"><i data-lucide="file-up"></i><span>匯入 Excel</span></button>
-<button type="button" class="btn btn-gray" onclick="exportSharedMembers()"><i data-lucide="file-down"></i><span>匯出名單</span></button>
-<button type="button" class="btn btn-gray" onclick="downloadMemberTemplate()"><i data-lucide="file-spreadsheet"></i><span>下載標準範本</span></button>
+<details class="member-more-menu"><summary class="btn btn-gray" aria-label="更多名單作業"><i data-lucide="ellipsis"></i><span>更多</span></summary><div class="member-more-menu-list">
+<button type="button" onclick="chooseMemberImport()"><i data-lucide="file-up"></i><span>匯入 Excel</span></button>
+<button type="button" onclick="exportSharedMembers()"><i data-lucide="file-down"></i><span>匯出名單</span></button>
+<button type="button" onclick="downloadMemberTemplate()"><i data-lucide="file-spreadsheet"></i><span>下載標準範本</span></button>
+</div></details>
 <input id="memberImportInput" class="file-input-hidden" type="file" accept=".xlsx,.xls,.csv" onchange="importSharedMembers(this.files[0]);this.value=''" aria-label="匯入人員 Excel">
 </div>
 </div>
 
-<div id="memberEditor" class="member-editor hidden">
-<div class="member-editor-head"><h3 id="memberEditorTitle">新增人員</h3><span id="memberEditorBadge" class="member-mode-badge">新增模式</span></div>
+<div id="memberEditor" class="member-modal-mask member-editor-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="memberEditorTitle">
+<section class="member-modal member-editor-dialog">
+<div class="member-modal-head"><div class="member-editor-head"><div><h3 id="memberEditorTitle">新增人員</h3><p>維護共用人員主檔及登入用 Google 帳號。</p></div><span id="memberEditorBadge" class="member-mode-badge">新增模式</span></div><button type="button" class="member-modal-close" onclick="cancelSharedMemberEdit()" aria-label="關閉">×</button></div>
 <div class="member-form-grid">
 <div class="form-group"><label for="memberDepartment">部門 *</label><select id="memberDepartment"></select></div>
 <div class="form-group"><label for="memberName">姓名 *</label><input id="memberName"></div>
@@ -947,13 +878,15 @@ onclick="addDepartment()">
 <div class="form-group"><label for="memberGoogleEmail">Google 帳號</label><input id="memberGoogleEmail" type="email" placeholder="name@gmail.com"></div>
 <div class="form-group"><label for="memberStatus">狀態</label><select id="memberStatus"><option value="true">啟用</option><option value="false">停用</option></select></div>
 </div>
-<div class="member-editor-actions"><button id="memberSaveButton" type="button" class="btn btn-primary" onclick="saveSharedMember()">新增人員</button><button type="button" class="btn btn-gray" onclick="cancelSharedMemberEdit()">取消</button></div>
+<div class="member-modal-actions member-editor-actions"><button type="button" class="btn btn-gray" onclick="cancelSharedMemberEdit()">取消</button><button id="memberSaveButton" type="button" class="btn btn-primary" onclick="saveSharedMember()">新增人員</button></div>
+</section>
 </div>
 
 <div id="memberImportResult" class="member-import-result" role="status" aria-live="polite"></div>
 
 <div class="member-search-row">
-<div class="form-group"><label for="memberSearch">搜尋</label><input id="memberSearch" placeholder="姓名、部門、員工編號或 Google 帳號" oninput="renderSharedMemberTable()"></div>
+<div class="form-group member-search-field"><label for="memberSearch">搜尋</label><div class="management-search-input"><i data-lucide="search"></i><input id="memberSearch" placeholder="姓名、部門、員工編號或 Google 帳號" oninput="renderSharedMemberTable()"></div></div>
+<div class="form-group"><label for="memberDepartmentFilter">部門</label><select id="memberDepartmentFilter" onchange="renderSharedMemberTable()"><option value="all">全部部門</option></select></div>
 <div class="form-group"><label for="memberStatusFilter">狀態</label><select id="memberStatusFilter" onchange="renderSharedMemberTable()"><option value="all">全部</option><option value="active">啟用</option><option value="inactive">停用</option></select></div>
 </div>
 
@@ -982,6 +915,12 @@ class="detail-title-icon">
 </h2>
 
 <p class="page-description">從三套系統共用人員名單選擇成員，再設定此人於印鑑系統的獨立角色與啟用狀態</p>
+
+<div class="permission-role-guide" aria-label="印鑑系統角色說明">
+<article><i data-lucide="stamp"></i><div><strong>一般使用者</strong><span>辦理印鑑借用與歸還。</span></div></article>
+<article><i data-lucide="eye"></i><div><strong>檢視者</strong><span>查看待借用管理與借用紀錄。</span></div></article>
+<article><i data-lucide="shield-check"></i><div><strong>系統管理員</strong><span>使用全部功能及管理權限。</span></div></article>
+</div>
 
 <div class="permission-create-card">
 
@@ -1027,13 +966,20 @@ onclick="addWhitelistUser()">
 
 </div>
 
-<details class="permission-migration-details">
+<details id="permissionMigrationDetails" class="permission-migration-details" hidden>
 <summary>舊權限移轉</summary>
 <div class="permission-migration-row">
 <span>僅供首次切換新版權限時使用；系統只會匯入可對應共用人員的舊白名單。</span>
 <button type="button" class="btn btn-gray btn-inline" onclick="migrateLegacySealPermissions()">匯入舊權限</button>
 </div>
 </details>
+
+<div class="permission-filter-row">
+<div class="management-search-input"><i data-lucide="search"></i><input id="permissionSearch" placeholder="搜尋姓名、部門或員工編號" oninput="renderUserList()"></div>
+<select id="permissionRoleFilter" onchange="renderUserList()" aria-label="角色篩選"><option value="all">全部角色</option><option value="user">一般使用者</option><option value="viewer">檢視者</option><option value="admin">系統管理員</option></select>
+<select id="permissionStatusFilter" onchange="renderUserList()" aria-label="狀態篩選"><option value="all">全部狀態</option><option value="active">啟用</option><option value="inactive">停用</option></select>
+<button type="button" class="btn btn-gray btn-inline" onclick="resetPermissionFilters()"><i data-lucide="rotate-ccw"></i><span>清除條件</span></button>
+</div>
 
 <div id="userListArea"></div>
 
@@ -1074,18 +1020,17 @@ class="detail-title-icon">
 
 登入紀錄
 
-<span id="loginCount">
-(0筆)
-</span>
-
 </h2>
 
-<div class="login-toolbar">
-<div class="form-group log-search-field"><label for="loginSearch">搜尋</label><input id="loginSearch" placeholder="姓名、部門、員工編號或 Email" oninput="filterLoginLogs()"></div>
+<p class="page-description">查看系統登入時間、使用者身分及當時角色。</p>
+<div class="management-filter-toolbar login-toolbar">
+<div class="form-group log-search-field"><label for="loginSearch">搜尋</label><div class="management-search-input"><i data-lucide="search"></i><input id="loginSearch" placeholder="姓名、部門、員工編號或 Email" oninput="filterLoginLogs()"></div></div>
 <label class="audit-date-field"><span>起日</span><input type="date" id="loginDateStart" onchange="filterLoginLogs()"></label>
 <label class="audit-date-field"><span>迄日</span><input type="date" id="loginDateEnd" onchange="filterLoginLogs()"></label>
-<button type="button" class="btn btn-gray" onclick="resetLoginFilter()"><i data-lucide="rotate-ccw"></i><span>重設</span></button>
+<button type="button" class="btn btn-gray" onclick="resetLoginFilter()"><i data-lucide="rotate-ccw"></i><span>清除條件</span></button>
 </div>
+
+<div id="loginActiveFilters" class="management-active-filters" aria-live="polite"></div>
 
 <div class="table-wrap">
 <table class="management-table">
@@ -1133,17 +1078,7 @@ onchange="changeLoginPageSize()">
 
 </div>
 
-<div class="log-pagination-actions">
-<button
-type="button"
-id="loginLoadMoreButton"
-class="btn btn-gray"
-onclick="loadMoreLoginLogs()"
-hidden>
-再載入 100 筆
-</button>
-<div id="loginPagination"></div>
-</div>
+<div class="log-pagination-actions"><div id="loginLoadingStatus" class="history-loading-status" hidden><span class="history-loading-dot" aria-hidden="true"></span>正在讀取完整登入紀錄</div><div id="loginPagination"></div></div>
 
 </div>
 
@@ -1465,7 +1400,15 @@ onclick="confirmReturnSeal()">
 </section>
 </div>
 
-    <script defer src="./app.js?v=20260814-v1513-history-pagination"></script>
+<div id="baseDataEditOverlay" class="management-modal-mask" aria-hidden="true">
+<section class="management-modal base-data-edit-dialog" role="dialog" aria-modal="true" aria-labelledby="baseDataEditTitle">
+<div class="management-modal-head"><div><h2 id="baseDataEditTitle">修改基礎資料</h2><p id="baseDataEditCaption">修改名稱與顯示順序。</p></div><button type="button" class="management-modal-close" onclick="closeBaseDataEdit()" aria-label="關閉"><i data-lucide="x"></i></button></div>
+<div class="management-modal-body"><div class="base-data-edit-grid"><div class="form-group"><label for="baseDataEditName">名稱</label><input id="baseDataEditName"></div><div class="form-group"><label for="baseDataEditOrder">顯示順序</label><input id="baseDataEditOrder" type="number"><small>數字越小，顯示順序越前面。</small></div></div></div>
+<div class="management-modal-actions"><button type="button" class="btn btn-gray" onclick="closeBaseDataEdit()">取消</button><button type="button" class="btn btn-primary" onclick="saveBaseDataEdit()">儲存變更</button></div>
+</section>
+</div>
+
+    <script defer src="./app.js?v=20260815-v1514-admin-unified"></script>
 
 </body>
 </html>
