@@ -6,7 +6,7 @@
 <title>印鑑借用管理系統 v15.19</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./styles.css?v=20260821-v1519-table-cell-fix">
+<link rel="stylesheet" href="./styles.css?v=20260821-v1519-alignment">
 
 <script defer src="https://unpkg.com/lucide@latest"></script>
 
@@ -154,7 +154,6 @@ transition:.15s;
 </h2>
 <p class="page-description">選擇印鑑並填寫本次借用資料</p>
 </div>
-</div>
 
 <div class="borrow-progress" aria-label="借用登記流程">
 <div id="borrowStepSeal" class="borrow-progress-step is-active">
@@ -170,6 +169,7 @@ transition:.15s;
 <div id="borrowStepConfirm" class="borrow-progress-step">
 <span>3</span>
 <strong>確認借出</strong>
+</div>
 </div>
 </div>
 
@@ -790,7 +790,7 @@ onclick="resetAuditFilter()">
 <!-- 基礎設定 -->
 <div id="baseDataPage" class="hidden">
 <div class="panel">
-<div class="page-heading">
+<div class="page-heading borrow-page-heading-row">
 <div class="page-heading-main">
 <h2 class="detail-title"><i data-lucide="database" class="detail-title-icon"></i>基礎設定</h2>
 <p class="page-description">集中管理印鑑與部門名稱、啟用狀態及顯示順序。</p>
@@ -1355,7 +1355,7 @@ onclick="confirmReturnSeal()">
 </section>
 </div>
 
-    <script defer src="./app.js?v=20260821-v1519-table-cell-fix"></script>
+    <script defer src="./app.js?v=20260821-v1519-alignment"></script>
 
 </body>
 </html>

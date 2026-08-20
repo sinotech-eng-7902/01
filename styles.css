@@ -493,9 +493,18 @@ width:100%;
 display:grid;
 grid-template-columns:auto minmax(44px,1fr) auto minmax(44px,1fr) auto;
 align-items:start;
-width:min(680px,100%);
-margin:14px auto 2px;
+width:min(760px,62vw);
+margin:0 0 0 auto;
 padding:0 8px;
+}
+
+.borrow-page-heading-row{
+align-items:center;
+margin-bottom:14px;
+}
+
+.borrow-page-heading-row .page-heading-main{
+flex:0 1 320px;
 }
 
 .borrow-progress-step{
@@ -2115,6 +2124,15 @@ white-space:nowrap;
 .page-heading{
 align-items:stretch;
 flex-direction:column;
+}
+
+.borrow-page-heading-row .page-heading-main{
+flex:0 1 auto;
+}
+
+.borrow-page-heading-row .borrow-progress{
+width:100%;
+margin:12px 0 0;
 }
 
 .page-heading-action{
@@ -3745,8 +3763,9 @@ width:100%;
 
 .master-name-cell{
     display:grid;
+    justify-items:center;
     gap:4px;
-    text-align:left;
+    text-align:center;
 }
 
 .master-name-cell strong{
