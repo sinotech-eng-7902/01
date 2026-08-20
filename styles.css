@@ -3410,6 +3410,21 @@ width:100%;
     color:#b91c1c;
 }
 
+.btn-primary-outline{
+    width:auto;
+    min-width:0;
+    border:1px solid #9bbcf0;
+    background:#fff;
+    color:#1d4ed8;
+    box-shadow:none;
+}
+
+.btn-primary-outline:hover{
+    border-color:#568de0;
+    background:#f2f7ff;
+    color:#1743b1;
+}
+
 .management-table{
     width:100%;
     min-width:760px;

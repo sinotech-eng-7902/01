@@ -2707,7 +2707,7 @@ ${currentRole === "viewer"
 ? ""
 
 : `<div class="pending-text-actions">
-<button type="button" class="btn btn-primary btn-sm" onclick="convertPending('${item.id}')">借用</button>
+<button type="button" class="btn btn-primary-outline btn-sm" onclick="convertPending('${item.id}')">借用</button>
 <button type="button" class="btn btn-gray btn-sm" onclick="editPending('${item.id}')">編輯</button>
 <button type="button" class="btn btn-danger-outline btn-sm" onclick="deletePending('${item.id}')">刪除</button>
 </div>`
