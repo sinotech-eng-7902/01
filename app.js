@@ -1148,7 +1148,7 @@ select.innerHTML = '<option value="">請選擇共用人員</option>' + options.m
 const department = memberDepartmentName(member) || "未設定部門";
 const employeeNo = memberEmployeeNo(member);
 const assigned = Boolean(email && assignedEmails.has(email));
-const unavailableReason = !email ? "（未設定 Google 帳號）" : assigned ? "（目前已有權限，可更新）" : "";
+const unavailableReason = !email ? "（未設定 Google 帳號）" : assigned ? "（已有權限，請於名單調整）" : "";
 const label = [`${department} ${member.name || "未設定姓名"}`,employeeNo ? `員編 ${employeeNo}` : "",unavailableReason].filter(Boolean).join("｜");
 return `<option value="${escapeHtml(member.id)}" data-email="${escapeHtml(email)}" ${!email ? "disabled" : ""}>${escapeHtml(label)}</option>`;
 }).join("");
@@ -1159,7 +1159,32 @@ const help = document.getElementById("newUserRoleHelp");
 if(help) help.textContent = permissionRoleDescription(role);
 }
 
+function openPermissionCreateModal(){
+if(blockViewerAction()) return;
+const overlay = document.getElementById("permissionCreateOverlay");
+if(!overlay) return;
+renderPermissionMemberOptions();
+const memberSelect = document.getElementById("newUserMember");
+const roleSelect = document.getElementById("newUserRole");
+if(memberSelect) memberSelect.value = "";
+if(roleSelect) roleSelect.value = "user";
+updateNewPermissionRoleHelp("user");
+overlay.classList.remove("hidden");
+overlay.setAttribute("aria-hidden","false");
+document.body.classList.add("modal-open");
+requestAnimationFrame(()=>memberSelect?.focus());
+}
+
+function closePermissionCreateModal(){
+const overlay = document.getElementById("permissionCreateOverlay");
+overlay?.classList.add("hidden");
+overlay?.setAttribute("aria-hidden","true");
+document.body.classList.remove("modal-open");
+}
+
 window.updateNewPermissionRoleHelp = updateNewPermissionRoleHelp;
+window.openPermissionCreateModal = openPermissionCreateModal;
+window.closePermissionCreateModal = closePermissionCreateModal;
 
 function populateMemberDepartmentOptions(){
 const select = document.getElementById("memberDepartment");
@@ -1705,6 +1730,16 @@ tab.classList.toggle("active",selected);
 tab.setAttribute("aria-selected",String(selected));
 });
 if(button && !button.classList.contains("active")) button.classList.add("active");
+updateBaseDataCreateAction();
+}
+
+function updateBaseDataCreateAction(){
+const isSeal = activeBaseDataSection !== "department";
+const button = document.getElementById("baseDataCreateButton");
+if(!button) return;
+button.innerHTML = `<i data-lucide="circle-plus"></i><span>新增${isSeal ? "印鑑" : "部門"}</span>`;
+button.setAttribute("aria-label",`新增${isSeal ? "印鑑" : "部門"}`);
+lucide.createIcons();
 }
 
 window.showPage = showPage;
@@ -2043,6 +2078,11 @@ return;
 
 }
 
+if(existing){
+alert("此同仁已有印鑑系統權限，請直接於下方名單調整角色或啟用狀態。");
+return;
+}
+
 const newUserData = {
 email,
 memberId,
@@ -2052,12 +2092,10 @@ updatedAt:new Date(),
 updatedByEmail:normalizeEmail(currentUserEmail)
 };
 
-if(!existing){
 newUserData.createdAt = new Date();
 newUserData.createdByEmail = normalizeEmail(currentUserEmail);
-}
 
-const permissionId = existing?.id || email;
+const permissionId = email;
 
 await setDoc(doc(db,"sealPermissions",permissionId),newUserData,{merge:true});
 
@@ -2073,9 +2111,9 @@ email
 after:newUserData
 });
 
-document.getElementById("newUserMember").value = "";
+closePermissionCreateModal();
 
-alert(existing ? "印鑑系統權限已更新並啟用" : "印鑑系統權限已新增");
+alert("印鑑系統權限已新增");
 
 await loadUsers();
 
@@ -2962,53 +3000,7 @@ await loadDepartments();
 }
 
 async function addDepartment(){
-
-if(blockViewerAction()) return;
-
-const name =
-document.getElementById("newDept")
-.value.trim();
-
-const order =
-parseInt(
-document.getElementById("newDeptOrder").value
-);
-
-if(!name || isNaN(order)){
-
-alert("請完整填寫");
-return;
-
-}
-
-const newDepartmentRef =
-await addDoc(collection(db,"departments"),{
-
-name:name,
-sortOrder:order,
-active:true
-
-});
-
-await writeAuditLog({
-action:"create",
-category:"department",
-targetId:newDepartmentRef.id,
-targetLabel:name,
-after:{
-name,
-sortOrder:order,
-active:true
-}
-});
-
-document.getElementById("newDept").value = "";
-document.getElementById("newDeptOrder").value = "";
-
-alert("新增成功");
-
-await loadDepartments();
-
+return saveBaseDataCreate("department");
 }
 
 async function isBaseDataReferenced(type,name){
@@ -3049,6 +3041,59 @@ baseDataEditType = "";
 baseDataEditId = "";
 }
 
+function openBaseDataCreate(type=activeBaseDataSection){
+if(blockViewerAction()) return;
+const createType = type === "department" ? "department" : "seal";
+const isSeal = createType === "seal";
+const overlay = document.getElementById("baseDataCreateOverlay");
+if(!overlay) return;
+overlay.dataset.type = createType;
+document.getElementById("baseDataCreateTitle").textContent = `新增${isSeal ? "印鑑" : "部門"}`;
+document.getElementById("baseDataCreateCaption").textContent = isSeal
+? "建立新的印鑑，完成後即可於借用登記選擇。"
+: "建立新的部門，完成後即可於借用與人員資料中選擇。";
+document.getElementById("baseDataCreateNameLabel").textContent = `${isSeal ? "印鑑" : "部門"}名稱`;
+const nameInput = document.getElementById("baseDataCreateName");
+const orderInput = document.getElementById("baseDataCreateOrder");
+const saveButton = document.getElementById("baseDataCreateSaveButton");
+if(nameInput){
+nameInput.value = "";
+nameInput.placeholder = isSeal ? "例如：大小章(1)" : "例如：行政部";
+}
+if(orderInput) orderInput.value = "";
+if(saveButton) saveButton.innerHTML = `<i data-lucide="circle-plus"></i><span>新增${isSeal ? "印鑑" : "部門"}</span>`;
+overlay.classList.add("open");
+overlay.setAttribute("aria-hidden","false");
+document.body.classList.add("modal-open");
+lucide.createIcons();
+requestAnimationFrame(()=>nameInput?.focus());
+}
+
+function closeBaseDataCreate(){
+const overlay = document.getElementById("baseDataCreateOverlay");
+overlay?.classList.remove("open");
+overlay?.setAttribute("aria-hidden","true");
+document.body.classList.remove("modal-open");
+}
+
+async function saveBaseDataCreate(forcedType=""){
+if(blockViewerAction()) return;
+const overlay = document.getElementById("baseDataCreateOverlay");
+const type = forcedType || overlay?.dataset.type || activeBaseDataSection;
+const isSeal = type !== "department";
+const name = document.getElementById("baseDataCreateName")?.value.trim() || "";
+const sortOrder = Number(document.getElementById("baseDataCreateOrder")?.value);
+const list = isSeal ? sealList : departmentList;
+if(!name || !Number.isFinite(sortOrder) || sortOrder < 1) return alert("請完整填寫名稱與有效的顯示順序");
+if(list.some(item=>String(item.name).trim() === name)) return alert(`已有相同${isSeal ? "印鑑" : "部門"}名稱，請使用不同名稱`);
+const collectionName = isSeal ? "seals" : "departments";
+const newRef = await addDoc(collection(db,collectionName),{name,sortOrder,active:true,createdAt:Timestamp.now(),createdByEmail:normalizeEmail(currentUserEmail)});
+await writeAuditLog({action:"create",category:isSeal ? "seal" : "department",targetId:newRef.id,targetLabel:name,after:{name,sortOrder,active:true}});
+closeBaseDataCreate();
+alert("新增成功");
+await (isSeal ? loadSeals() : loadDepartments());
+}
+
 async function saveBaseDataEdit(){
 if(blockViewerAction()) return;
 const type = baseDataEditType;
@@ -3084,6 +3129,9 @@ window.openBaseDataEdit = openBaseDataEdit;
 window.closeBaseDataEdit = closeBaseDataEdit;
 window.saveBaseDataEdit = saveBaseDataEdit;
 window.toggleBaseDataActive = toggleBaseDataActive;
+window.openBaseDataCreate = openBaseDataCreate;
+window.closeBaseDataCreate = closeBaseDataCreate;
+window.saveBaseDataCreate = saveBaseDataCreate;
 
 async function deleteDepartment(id){
 
@@ -3315,53 +3363,7 @@ await loadSeals();
 }
 
 async function addSeal(){
-
-if(blockViewerAction()) return;
-
-const name =
-document.getElementById("newSeal")
-.value.trim();
-
-const order =
-parseInt(
-document.getElementById("newOrder").value
-);
-
-if(!name || isNaN(order)){
-
-alert("請完整填寫");
-return;
-
-}
-
-const newSealRef =
-await addDoc(collection(db,"seals"),{
-
-name:name,
-sortOrder:order,
-active:true
-
-});
-
-await writeAuditLog({
-action:"create",
-category:"seal",
-targetId:newSealRef.id,
-targetLabel:name,
-after:{
-name,
-sortOrder:order,
-active:true
-}
-});
-
-document.getElementById("newSeal").value = "";
-document.getElementById("newOrder").value = "";
-
-alert("新增成功");
-
-await loadSeals();
-
+return saveBaseDataCreate("seal");
 }
 
 async function deleteSeal(id){

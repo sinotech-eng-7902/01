@@ -4870,3 +4870,79 @@ body.modal-open{
     .management-filter-toolbar > .btn,
     .permission-filter-row > .btn{width:100%;}
 }
+
+/* v15.15 行事曆操作按鈕與新增彈窗流程 */
+.seal-calendar .fc .fc-button{
+    border-color:#cddbe9;
+    background:#fff;
+    color:#38536e;
+    box-shadow:0 2px 5px rgba(31,62,95,.04)!important;
+}
+.seal-calendar .fc .fc-button:hover:not(:disabled){
+    border-color:#9fc0e8;
+    background:#eef5ff;
+    color:#175aa8;
+}
+.seal-calendar .fc .fc-button-primary:not(:disabled).fc-button-active,
+.seal-calendar .fc .fc-button-primary:not(:disabled):active{
+    border-color:#2868be;
+    background:#2868be;
+    color:#fff;
+}
+.seal-calendar .fc .fc-today-button{
+    border-color:#bad2ee;
+    background:#edf5ff;
+    color:#1e5da8;
+}
+.seal-calendar .fc .fc-today-button:hover:not(:disabled){
+    border-color:#7aa8db;
+    background:#dcecff;
+    color:#164d91;
+}
+.seal-calendar .fc .fc-button-primary:disabled{
+    border-color:#dbe5ef;
+    background:#f4f7fa;
+    color:#8a9bad;
+    opacity:1;
+}
+.seal-calendar .fc .fc-button-group > .fc-button:first-child{border-radius:10px 0 0 10px;}
+.seal-calendar .fc .fc-button-group > .fc-button:last-child{border-radius:0 10px 10px 0;}
+.seal-calendar .fc .fc-button-group > .fc-button:only-child{border-radius:10px;}
+
+.permission-page-heading,
+.page-heading:has(#baseDataCreateButton){align-items:flex-start;}
+.permission-create-overlay{display:flex;position:fixed;inset:0;z-index:1650;align-items:center;justify-content:center;padding:22px;background:rgba(18,34,52,.52);}
+.permission-create-overlay.hidden{display:none!important;}
+.permission-create-dialog{width:min(680px,100%);}
+.permission-create-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;padding:22px 24px;}
+.permission-create-form .form-group{margin:0;}
+.permission-create-form .form-group small{display:block;margin-top:7px;color:#66788d;line-height:1.5;}
+.permission-create-form select{height:48px;}
+.base-data-create-dialog{width:min(620px,calc(100vw - 48px));}
+.base-data-create-dialog .base-data-edit-grid{padding:2px 0;}
+@media(max-width:680px){
+    .permission-page-heading{gap:14px;}
+    .permission-page-heading .page-heading-action,
+    #baseDataCreateButton{width:100%;justify-content:center;}
+    .permission-create-overlay{padding:12px;}
+    .permission-create-form{grid-template-columns:1fr;padding:18px;}
+    .permission-create-dialog{width:100%;max-height:calc(100dvh - 24px);overflow:auto;}
+    .base-data-create-dialog{width:100%;}
+}
+
+/* v15.15 管理清單標題列一致化：以借用紀錄為準 */
+#pendingPage .table-wrap thead th,
+#returnPage .table-wrap thead th,
+#historyPage .table-wrap thead th{
+    height:auto;
+    padding:16px;
+    background:#f8fafc;
+    color:#475569;
+    border-bottom:2px solid #e2e8f0;
+    font-size:13px;
+    font-weight:700;
+    line-height:1.35;
+    text-align:center;
+    vertical-align:middle;
+    white-space:nowrap;
+}

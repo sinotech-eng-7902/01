@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>印鑑借用管理系統 v15.14</title>
+<title>印鑑借用管理系統 v15.15</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./styles.css?v=20260815-v1514-admin-unified-r2">
+<link rel="stylesheet" href="./styles.css?v=20260817-v1515-calendar-permission-modal">
 
 <script defer src="https://unpkg.com/lucide@latest"></script>
 
@@ -811,6 +811,7 @@ onclick="resetAuditFilter()">
 <h2 class="detail-title"><i data-lucide="database" class="detail-title-icon"></i>基礎資料設定</h2>
 <p class="page-description">集中管理印鑑與部門名稱、啟用狀態及顯示順序。</p>
 </div>
+<button id="baseDataCreateButton" type="button" class="btn btn-primary page-heading-action" onclick="openBaseDataCreate()"><i data-lucide="circle-plus"></i><span>新增印鑑</span></button>
 </div>
 <div class="section-divider"></div>
 <div class="base-data-tabs" role="tablist" aria-label="基礎資料類別">
@@ -820,27 +821,11 @@ onclick="resetAuditFilter()">
 
 <section id="baseDataSealSection" class="base-data-section">
 <div class="base-data-section-head"><div><h3>印鑑設定</h3><p>停用後不再出現在新借用選項，既有紀錄仍會保留。</p></div></div>
-<details class="base-data-create-details">
-<summary><i data-lucide="circle-plus"></i><span>新增印鑑</span></summary>
-<div class="compact-create-row compact-create-row-two">
-<div class="form-group"><label>印鑑名稱</label><input type="text" id="newSeal" placeholder="例如：大小章(1)"></div>
-<div class="form-group"><label>顯示順序</label><input type="number" id="newOrder" placeholder="例如：1"><small>數字越小，顯示順序越前面。</small></div>
-<button type="button" class="btn btn-primary btn-inline" onclick="addSeal()"><i data-lucide="circle-plus"></i><span>新增印鑑</span></button>
-</div>
-</details>
 <div id="sealListArea"></div>
 </section>
 
 <section id="baseDataDepartmentSection" class="base-data-section hidden">
 <div class="base-data-section-head"><div><h3>部門設定</h3><p>停用後不再出現在新建資料選項，歷史紀錄及共用人員資料不受影響。</p></div></div>
-<details class="base-data-create-details">
-<summary><i data-lucide="circle-plus"></i><span>新增部門</span></summary>
-<div class="compact-create-row compact-create-row-two">
-<div class="form-group"><label>部門名稱</label><input type="text" id="newDept" placeholder="例如：行政部"></div>
-<div class="form-group"><label>顯示順序</label><input type="number" id="newDeptOrder" placeholder="例如：1"><small>數字越小，顯示順序越前面。</small></div>
-<button type="button" class="btn btn-primary btn-inline" onclick="addDepartment()"><i data-lucide="circle-plus"></i><span>新增部門</span></button>
-</div>
-</details>
 <div id="deptListArea"></div>
 </section>
 </div>
@@ -903,6 +888,8 @@ onclick="resetAuditFilter()">
 
 <div class="panel">
 
+<div class="page-heading permission-page-heading">
+<div class="page-heading-main">
 <h2 class="detail-title">
 
 <i
@@ -915,6 +902,9 @@ class="detail-title-icon">
 </h2>
 
 <p class="page-description">從三套系統共用人員名單選擇成員，再設定此人於印鑑系統的獨立角色與啟用狀態</p>
+</div>
+<button type="button" class="btn btn-primary page-heading-action" onclick="openPermissionCreateModal()"><i data-lucide="user-plus"></i><span>新增權限</span></button>
+</div>
 
 <div class="permission-role-guide" aria-label="印鑑系統角色說明">
 <article><i data-lucide="stamp"></i><div><strong>一般使用者</strong><span>辦理印鑑借用與歸還。</span></div></article>
@@ -922,50 +912,16 @@ class="detail-title-icon">
 <article><i data-lucide="shield-check"></i><div><strong>系統管理員</strong><span>使用全部功能及管理權限。</span></div></article>
 </div>
 
-<div class="permission-create-card">
-
-<div class="compact-create-row compact-create-row-user">
-
-<div class="form-group">
-
-<label for="newUserMember">共用人員</label>
-
-<select id="newUserMember">
-<option value="">請選擇共用人員</option>
-</select>
-
+<div id="permissionCreateOverlay" class="member-modal-mask permission-create-overlay hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="permissionCreateTitle">
+<section class="member-modal permission-create-dialog">
+<div class="member-modal-head"><div><h2 id="permissionCreateTitle">新增權限</h2><p>從共用人員名單選擇同仁，設定其於印鑑系統的使用角色。</p></div><button type="button" class="member-modal-close" onclick="closePermissionCreateModal()" aria-label="關閉">×</button></div>
+<div class="permission-create-form">
+<div class="form-group"><label for="newUserMember">共用人員</label><select id="newUserMember"><option value="">請選擇共用人員</option></select><small>已有權限的同仁，請直接於下方名單調整角色或啟用狀態。</small></div>
+<div class="form-group"><label for="newUserRole">印鑑系統角色</label><select id="newUserRole" onchange="updateNewPermissionRoleHelp(this.value)"><option value="user">一般使用者</option><option value="viewer">檢視者</option><option value="admin">系統管理員</option></select><small id="newUserRoleHelp" class="permission-role-help">可辦理印鑑借用與歸還。</small></div>
 </div>
-
-<div class="form-group">
-
-<label for="newUserRole">印鑑系統角色</label>
-
-<select id="newUserRole" onchange="updateNewPermissionRoleHelp(this.value)">
-<option value="user">一般使用者</option>
-<option value="viewer">檢視者</option>
-<option value="admin">系統管理員</option>
-</select>
-
-<small id="newUserRoleHelp" class="permission-role-help">可辦理印鑑借用與歸還。</small>
-
+<div class="member-modal-actions"><button type="button" class="btn btn-gray" onclick="closePermissionCreateModal()">取消</button><button type="button" class="btn btn-primary" onclick="addWhitelistUser()"><i data-lucide="user-plus"></i><span>新增權限</span></button></div>
+</section>
 </div>
-
-<button
-class="btn btn-primary permission-submit-button"
-onclick="addWhitelistUser()">
-
-<i data-lucide="circle-plus"></i>
-
-<span>
-新增／更新權限
-</span>
-
-</button>
-
-</div>
-
-</div>
-
 <details id="permissionMigrationDetails" class="permission-migration-details" hidden>
 <summary>舊權限移轉</summary>
 <div class="permission-migration-row">
@@ -1408,7 +1364,15 @@ onclick="confirmReturnSeal()">
 </section>
 </div>
 
-    <script defer src="./app.js?v=20260815-v1514-admin-unified"></script>
+<div id="baseDataCreateOverlay" class="management-modal-mask" aria-hidden="true">
+<section class="management-modal base-data-edit-dialog base-data-create-dialog" role="dialog" aria-modal="true" aria-labelledby="baseDataCreateTitle">
+<div class="management-modal-head"><div><h2 id="baseDataCreateTitle">新增印鑑</h2><p id="baseDataCreateCaption">建立新的印鑑，完成後即可於借用登記選擇。</p></div><button type="button" class="management-modal-close" onclick="closeBaseDataCreate()" aria-label="關閉"><i data-lucide="x"></i></button></div>
+<div class="management-modal-body"><div class="base-data-edit-grid"><div class="form-group"><label id="baseDataCreateNameLabel" for="baseDataCreateName">印鑑名稱</label><input id="baseDataCreateName" placeholder="例如：大小章(1)"></div><div class="form-group"><label for="baseDataCreateOrder">顯示順序</label><input id="baseDataCreateOrder" type="number" min="1" placeholder="例如：1"><small>數字越小，顯示順序越前面。</small></div></div></div>
+<div class="management-modal-actions"><button type="button" class="btn btn-gray" onclick="closeBaseDataCreate()">取消</button><button id="baseDataCreateSaveButton" type="button" class="btn btn-primary" onclick="saveBaseDataCreate()"><i data-lucide="circle-plus"></i><span>新增印鑑</span></button></div>
+</section>
+</div>
+
+    <script defer src="./app.js?v=20260817-v1515-calendar-permission-modal"></script>
 
 </body>
 </html>
