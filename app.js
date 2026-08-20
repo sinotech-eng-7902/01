@@ -2700,39 +2700,16 @@ ${item.status==="已轉正式借用"
 
 </td>
 
-<td class="pending-action-column">
+<td class="pending-action-column pending-text-actions">
 
 ${currentRole === "viewer"
 
 ? ""
 
 : `
-<button
-class="action-btn edit-btn tooltip"
-data-tip="修改"
-onclick="editPending('${item.id}')">
-
-<i data-lucide="pencil"></i>
-
-</button>
-
-<button
-class="action-btn delete-btn tooltip"
-data-tip="刪除"
-onclick="deletePending('${item.id}')">
-
-<i data-lucide="trash-2"></i>
-
-</button>
-
-<button
-class="action-btn convert-btn tooltip"
-data-tip="轉正式借用"
-onclick="convertPending('${item.id}')">
-
-<i data-lucide="arrow-right-circle"></i>
-
-</button>
+<button type="button" class="btn btn-primary btn-sm" onclick="convertPending('${item.id}')">轉正式借用</button>
+<button type="button" class="btn btn-gray btn-sm" onclick="editPending('${item.id}')">編輯</button>
+<button type="button" class="btn btn-danger-outline btn-sm" onclick="deletePending('${item.id}')">刪除</button>
 `
 }
 
@@ -2907,16 +2884,18 @@ return;
 const countBadge = document.getElementById("departmentCountBadge");
 if(countBadge) countBadge.textContent = `${departmentList.filter(item=>item.active !== false).length} 個啟用`;
 
-area.innerHTML = `<div class="table-wrap"><table class="management-table master-table"><thead><tr><th>部門名稱</th><th>狀態</th><th>顯示順序</th><th>操作</th></tr></thead><tbody>${departmentList.map((dept,index)=>`
+area.innerHTML = `<div class="table-wrap"><table class="management-table master-table"><thead><tr><th>部門名稱</th><th>狀態</th><th>顯示順序</th><th>調整順序</th><th>操作</th></tr></thead><tbody>${departmentList.map((dept,index)=>`
 <tr class="${dept.active === false ? 'is-inactive' : ''}">
 <td class="master-name-cell"><strong>${escapeHtml(dept.name || "未命名部門")}</strong></td>
 <td><span class="status-badge ${dept.active === false ? 'status-inactive' : 'status-active'}">${dept.active === false ? '停用' : '啟用'}</span></td>
 <td><span class="master-order-badge">${escapeHtml(dept.sortOrder ?? index + 1)}</span></td>
+<td class="master-order-actions">
+<button type="button" class="icon-button" title="上移" aria-label="上移 ${escapeHtml(dept.name || "部門")}" onclick="moveDeptUp('${dept.id}')" ${index === 0 ? "disabled" : ""}><i data-lucide="arrow-up"></i></button>
+<button type="button" class="icon-button" title="下移" aria-label="下移 ${escapeHtml(dept.name || "部門")}" onclick="moveDeptDown('${dept.id}')" ${index === departmentList.length - 1 ? "disabled" : ""}><i data-lucide="arrow-down"></i></button>
+</td>
 <td class="operation-cell master-actions">
 <button type="button" class="btn btn-gray btn-sm" onclick="openBaseDataEdit('department','${dept.id}')">修改</button>
 <button type="button" class="btn btn-gray btn-sm" onclick="toggleBaseDataActive('department','${dept.id}',${dept.active !== false})">${dept.active === false ? '啟用' : '停用'}</button>
-<button type="button" class="icon-button" title="上移" aria-label="上移 ${escapeHtml(dept.name || "部門")}" onclick="moveDeptUp('${dept.id}')" ${index === 0 ? "disabled" : ""}><i data-lucide="arrow-up"></i></button>
-<button type="button" class="icon-button" title="下移" aria-label="下移 ${escapeHtml(dept.name || "部門")}" onclick="moveDeptDown('${dept.id}')" ${index === departmentList.length - 1 ? "disabled" : ""}><i data-lucide="arrow-down"></i></button>
 <button type="button" class="btn btn-danger-outline btn-sm" onclick="deleteDepartment('${dept.id}')">刪除</button>
 </td>
 </tr>`).join("")}</tbody></table></div>`;
@@ -3270,16 +3249,18 @@ return;
 const countBadge = document.getElementById("sealCountBadge");
 if(countBadge) countBadge.textContent = `${sealList.filter(item=>item.active !== false).length} 組啟用`;
 
-area.innerHTML = `<div class="table-wrap"><table class="management-table master-table"><thead><tr><th>印鑑名稱</th><th>狀態</th><th>顯示順序</th><th>操作</th></tr></thead><tbody>${sealList.map((seal,index)=>`
+area.innerHTML = `<div class="table-wrap"><table class="management-table master-table"><thead><tr><th>印鑑名稱</th><th>狀態</th><th>顯示順序</th><th>調整順序</th><th>操作</th></tr></thead><tbody>${sealList.map((seal,index)=>`
 <tr class="${seal.active === false ? 'is-inactive' : ''}">
 <td class="master-name-cell"><strong>${escapeHtml(seal.name || "未命名印鑑")}</strong></td>
 <td><span class="status-badge ${seal.active === false ? 'status-inactive' : 'status-active'}">${seal.active === false ? '停用' : '啟用'}</span></td>
 <td><span class="master-order-badge">${escapeHtml(seal.sortOrder ?? index + 1)}</span></td>
+<td class="master-order-actions">
+<button type="button" class="icon-button" title="上移" aria-label="上移 ${escapeHtml(seal.name || "印鑑")}" onclick="moveUp('${seal.id}')" ${index === 0 ? "disabled" : ""}><i data-lucide="arrow-up"></i></button>
+<button type="button" class="icon-button" title="下移" aria-label="下移 ${escapeHtml(seal.name || "印鑑")}" onclick="moveDown('${seal.id}')" ${index === sealList.length - 1 ? "disabled" : ""}><i data-lucide="arrow-down"></i></button>
+</td>
 <td class="operation-cell master-actions">
 <button type="button" class="btn btn-gray btn-sm" onclick="openBaseDataEdit('seal','${seal.id}')">修改</button>
 <button type="button" class="btn btn-gray btn-sm" onclick="toggleBaseDataActive('seal','${seal.id}',${seal.active !== false})">${seal.active === false ? '啟用' : '停用'}</button>
-<button type="button" class="icon-button" title="上移" aria-label="上移 ${escapeHtml(seal.name || "印鑑")}" onclick="moveUp('${seal.id}')" ${index === 0 ? "disabled" : ""}><i data-lucide="arrow-up"></i></button>
-<button type="button" class="icon-button" title="下移" aria-label="下移 ${escapeHtml(seal.name || "印鑑")}" onclick="moveDown('${seal.id}')" ${index === sealList.length - 1 ? "disabled" : ""}><i data-lucide="arrow-down"></i></button>
 <button type="button" class="btn btn-danger-outline btn-sm" onclick="deleteSeal('${seal.id}')">刪除</button>
 </td>
 </tr>`).join("")}</tbody></table></div>`;
@@ -4119,7 +4100,6 @@ records = [...combined.values()];
 renderTable();
 renderReturnTable();
 renderStatus();
-updateKPI();
 if(typeof loadCalendarEvents === 'function') loadCalendarEvents();
 
 }
@@ -4193,26 +4173,6 @@ if(!status) return;
 status.hidden = !historyLoading;
 }
 
-function updateKPI(){
-
-const borrowed =
-records.filter(
-r=>!r.returnTime
-).length;
-
-const available =
-sealList.length - borrowed;
-
-const borrowedElement =
-document.getElementById('borrowBorrowedCount');
-
-const availableElement =
-document.getElementById('borrowAvailableCount');
-
-if(borrowedElement) borrowedElement.innerText = borrowed;
-if(availableElement) availableElement.innerText = available;
-
-}
 
 
 
@@ -4488,15 +4448,8 @@ tr.innerHTML = `
 <td>${r.purpose}</td>
 <td>${formatDate(r.borrowTime)}</td>
 
-<td>
-<button
-class="action-btn convert-btn tooltip"
-data-tip="歸還"
-onclick="openReturnModal('${r.id}')">
-
-<i data-lucide="rotate-ccw"></i>
-
-</button>
+<td class="operation-cell return-text-actions">
+<button type="button" class="btn btn-return btn-sm" onclick="openReturnModal('${r.id}')">歸還</button>
 </td>
 `;
 

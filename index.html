@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>印鑑借用管理系統 v15.18</title>
+<title>印鑑借用管理系統 v15.19</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./styles.css?v=20260821-v1518-modal-actions">
+<link rel="stylesheet" href="./styles.css?v=20260821-v1519-navigation-actions">
 
 <script defer src="https://unpkg.com/lucide@latest"></script>
 
@@ -107,23 +107,20 @@ transition:.15s;
                 <i data-lucide="chevron-down" class="top-chevron"></i>
             </button>
             <div class="top-dropdown">
-                <div class="top-dropdown-section-label">基礎設定</div>
-                <div id="baseDataMenu" class="menu-item" data-tooltip="基礎資料設定" onclick="openBaseDataPage(this)">
-                    <i data-lucide="database" class="menu-icon"></i><span>基礎資料設定</span>
+                <div id="baseDataMenu" class="menu-item" data-tooltip="基礎設定" onclick="openBaseDataPage(this)">
+                    <i data-lucide="database" class="menu-icon"></i><span>基礎設定</span>
                 </div>
-                <div class="top-dropdown-section-label">帳號與權限</div>
                 <div class="menu-item" id="memberMenu" data-tooltip="人員管理" onclick="showPage('memberPage',this)">
                     <i data-lucide="contact-round" class="menu-icon"></i><span>人員管理</span>
                 </div>
                 <div class="menu-item" id="permissionMenu" data-tooltip="權限管理" onclick="showPage('permissionPage',this)">
                     <i data-lucide="users" class="menu-icon"></i><span>權限管理</span>
                 </div>
-                <div class="top-dropdown-section-label">系統紀錄</div>
-                <div class="menu-item" id="loginLogMenu" data-tooltip="登入紀錄" onclick="showPage('loginLogPage',this)">
-                    <i data-lucide="log-in" class="menu-icon"></i><span>登入紀錄</span>
-                </div>
                 <div class="menu-item" id="auditLogMenu" data-tooltip="操作紀錄" onclick="openAuditLogPage(this)">
                     <i data-lucide="history" class="menu-icon"></i><span>操作紀錄</span>
+                </div>
+                <div class="menu-item" id="loginLogMenu" data-tooltip="登入紀錄" onclick="showPage('loginLogPage',this)">
+                    <i data-lucide="log-in" class="menu-icon"></i><span>登入紀錄</span>
                 </div>
             </div>
         </div>
@@ -156,14 +153,6 @@ transition:.15s;
 借用登記
 </h2>
 <p class="page-description">選擇印鑑並填寫本次借用資料</p>
-</div>
-<div class="borrow-summary">
-<span class="summary-pill summary-pill-available">
-<b id="borrowAvailableCount">0</b> 組可借用
-</span>
-<span class="summary-pill">
-<b id="borrowBorrowedCount">0</b> 組借出
-</span>
 </div>
 </div>
 
@@ -798,12 +787,12 @@ onclick="resetAuditFilter()">
 
 </div>
 
-<!-- 基礎資料設定 -->
+<!-- 基礎設定 -->
 <div id="baseDataPage" class="hidden">
 <div class="panel">
 <div class="page-heading">
 <div class="page-heading-main">
-<h2 class="detail-title"><i data-lucide="database" class="detail-title-icon"></i>基礎資料設定</h2>
+<h2 class="detail-title"><i data-lucide="database" class="detail-title-icon"></i>基礎設定</h2>
 <p class="page-description">集中管理印鑑與部門名稱、啟用狀態及顯示順序。</p>
 </div>
 <button id="baseDataCreateButton" type="button" class="btn btn-primary page-heading-action" onclick="openBaseDataCreate()"><i data-lucide="circle-plus"></i><span>新增印鑑</span></button>
@@ -1337,13 +1326,13 @@ onclick="confirmReturnSeal()">
 <section class="management-modal calendar-detail-modal" role="dialog" aria-modal="true" aria-labelledby="calendarDetailTitle">
 <div class="management-modal-head calendar-detail-head">
 <div>
-<div class="calendar-detail-heading-line">
 <h2 id="calendarDetailTitle">借用行程資訊</h2>
-<span id="calendarDetailStatus" class="calendar-detail-status">借用中</span>
-</div>
 <p id="calendarDetailCaption">查看印鑑借用與歸還資訊</p>
 </div>
+<div class="calendar-detail-head-actions">
+<span id="calendarDetailStatus" class="calendar-detail-status">借用中</span>
 <button type="button" class="management-modal-close" onclick="closeCalendarDetail()" aria-label="關閉"><i data-lucide="x"></i></button>
+</div>
 </div>
 <div id="calendarDetailBody" class="management-modal-body calendar-detail-body"></div>
 <div class="management-modal-actions"><button type="button" class="btn btn-gray" onclick="closeCalendarDetail()">關閉</button></div>
@@ -1366,7 +1355,7 @@ onclick="confirmReturnSeal()">
 </section>
 </div>
 
-    <script defer src="./app.js?v=20260821-v1518-modal-actions"></script>
+    <script defer src="./app.js?v=20260821-v1519-navigation-actions"></script>
 
 </body>
 </html>
