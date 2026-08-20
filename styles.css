@@ -4930,6 +4930,99 @@ body.modal-open{
     .base-data-create-dialog{width:100%;}
 }
 
+/* v15.16 行事曆按鈕與新增視窗一致性修正 */
+/* FullCalendar 會把 .fc 套在 #sealCalendar 本身；使用 ID 直接鎖定實際按鈕，避免原始深色主題覆蓋。 */
+#sealCalendar .fc-button-primary{
+    min-height:42px;
+    padding:.5em .86em;
+    border-color:#c8d7e6;
+    border-radius:10px;
+    background:#fff;
+    color:#315b82;
+    box-shadow:0 2px 7px rgba(31,62,95,.06)!important;
+    font-weight:800;
+    transition:background-color .18s ease,border-color .18s ease,color .18s ease,box-shadow .18s ease,transform .18s ease;
+}
+#sealCalendar .fc-button-primary:hover:not(:disabled){
+    border-color:#8fb8e3;
+    background:#edf5ff;
+    color:#145aa5;
+    box-shadow:0 5px 14px rgba(39,104,190,.13)!important;
+}
+#sealCalendar .fc-button-primary:focus,
+#sealCalendar .fc-button-primary:focus-visible{
+    border-color:#5f96d2;
+    box-shadow:0 0 0 3px rgba(40,104,190,.16)!important;
+    outline:none;
+}
+#sealCalendar .fc-button-primary:not(:disabled).fc-button-active,
+#sealCalendar .fc-button-primary:not(:disabled):active{
+    border-color:#2868be;
+    background:#2868be;
+    color:#fff;
+    box-shadow:0 4px 12px rgba(40,104,190,.2)!important;
+}
+#sealCalendar .fc-today-button:not(:disabled){
+    border-color:#bad2ee;
+    background:#eaf3ff;
+    color:#1b5b9f;
+}
+#sealCalendar .fc-today-button:hover:not(:disabled){
+    border-color:#7faadb;
+    background:#dcecff;
+    color:#114d8d;
+}
+#sealCalendar .fc-button-primary:disabled{
+    border-color:#dbe5ef;
+    background:#f4f7fa;
+    color:#8a9bad;
+    box-shadow:none!important;
+    opacity:1;
+}
+#sealCalendar .fc-button-group > .fc-button:first-child{border-radius:10px 0 0 10px;}
+#sealCalendar .fc-button-group > .fc-button:last-child{border-radius:0 10px 10px 0;}
+#sealCalendar .fc-button-group > .fc-button:only-child{border-radius:10px;}
+
+.create-modal-actions{
+    align-items:center;
+    justify-content:flex-end;
+    gap:12px;
+}
+.create-modal-actions .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    flex:0 0 auto;
+    width:auto;
+    min-width:88px;
+    height:46px;
+    padding:0 20px;
+    border-radius:11px;
+}
+.create-modal-actions .btn-primary{
+    min-width:148px;
+}
+.create-modal-actions .btn svg{
+    width:19px;
+    height:19px;
+    margin-right:7px;
+}
+.member-editor-head{
+    width:100%;
+}
+
+@media(max-width:520px){
+    .create-modal-actions{
+        flex-wrap:wrap;
+    }
+    .create-modal-actions .btn{
+        min-width:0;
+    }
+    .create-modal-actions .btn-primary{
+        min-width:136px;
+    }
+}
+
 /* v15.15 管理清單標題列一致化：以借用紀錄為準 */
 #pendingPage .table-wrap thead th,
 #returnPage .table-wrap thead th,

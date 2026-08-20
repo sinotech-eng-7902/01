@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>印鑑借用管理系統 v15.15</title>
+<title>印鑑借用管理系統 v15.16</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./styles.css?v=20260817-v1515-calendar-permission-modal">
+<link rel="stylesheet" href="./styles.css?v=20260820-v1516-calendar-modal-consistency">
 
 <script defer src="https://unpkg.com/lucide@latest"></script>
 
@@ -855,7 +855,7 @@ onclick="resetAuditFilter()">
 
 <div id="memberEditor" class="member-modal-mask member-editor-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="memberEditorTitle">
 <section class="member-modal member-editor-dialog">
-<div class="member-modal-head"><div class="member-editor-head"><div><h3 id="memberEditorTitle">新增人員</h3><p>維護共用人員主檔及登入用 Google 帳號。</p></div><span id="memberEditorBadge" class="member-mode-badge">新增模式</span></div><button type="button" class="member-modal-close" onclick="cancelSharedMemberEdit()" aria-label="關閉">×</button></div>
+<div class="member-modal-head"><div class="member-editor-head"><div><h3 id="memberEditorTitle">新增人員</h3><p>維護共用人員主檔及登入用 Google 帳號。</p></div></div><button type="button" class="member-modal-close" onclick="cancelSharedMemberEdit()" aria-label="關閉">×</button></div>
 <div class="member-form-grid">
 <div class="form-group"><label for="memberDepartment">部門 *</label><select id="memberDepartment"></select></div>
 <div class="form-group"><label for="memberName">姓名 *</label><input id="memberName"></div>
@@ -863,7 +863,7 @@ onclick="resetAuditFilter()">
 <div class="form-group"><label for="memberGoogleEmail">Google 帳號</label><input id="memberGoogleEmail" type="email" placeholder="name@gmail.com"></div>
 <div class="form-group"><label for="memberStatus">狀態</label><select id="memberStatus"><option value="true">啟用</option><option value="false">停用</option></select></div>
 </div>
-<div class="member-modal-actions member-editor-actions"><button type="button" class="btn btn-gray" onclick="cancelSharedMemberEdit()">取消</button><button id="memberSaveButton" type="button" class="btn btn-primary" onclick="saveSharedMember()">新增人員</button></div>
+<div class="member-modal-actions member-editor-actions create-modal-actions"><button type="button" class="btn btn-gray" onclick="cancelSharedMemberEdit()">取消</button><button id="memberSaveButton" type="button" class="btn btn-primary" onclick="saveSharedMember()">新增人員</button></div>
 </section>
 </div>
 
@@ -919,7 +919,7 @@ class="detail-title-icon">
 <div class="form-group"><label for="newUserMember">共用人員</label><select id="newUserMember"><option value="">請選擇共用人員</option></select><small>已有權限的同仁，請直接於下方名單調整角色或啟用狀態。</small></div>
 <div class="form-group"><label for="newUserRole">印鑑系統角色</label><select id="newUserRole" onchange="updateNewPermissionRoleHelp(this.value)"><option value="user">一般使用者</option><option value="viewer">檢視者</option><option value="admin">系統管理員</option></select><small id="newUserRoleHelp" class="permission-role-help">可辦理印鑑借用與歸還。</small></div>
 </div>
-<div class="member-modal-actions"><button type="button" class="btn btn-gray" onclick="closePermissionCreateModal()">取消</button><button type="button" class="btn btn-primary" onclick="addWhitelistUser()"><i data-lucide="user-plus"></i><span>新增權限</span></button></div>
+<div class="member-modal-actions create-modal-actions"><button type="button" class="btn btn-gray" onclick="closePermissionCreateModal()">取消</button><button type="button" class="btn btn-primary" onclick="addWhitelistUser()"><i data-lucide="user-plus"></i><span>新增權限</span></button></div>
 </section>
 </div>
 <details id="permissionMigrationDetails" class="permission-migration-details" hidden>
@@ -1368,11 +1368,11 @@ onclick="confirmReturnSeal()">
 <section class="management-modal base-data-edit-dialog base-data-create-dialog" role="dialog" aria-modal="true" aria-labelledby="baseDataCreateTitle">
 <div class="management-modal-head"><div><h2 id="baseDataCreateTitle">新增印鑑</h2><p id="baseDataCreateCaption">建立新的印鑑，完成後即可於借用登記選擇。</p></div><button type="button" class="management-modal-close" onclick="closeBaseDataCreate()" aria-label="關閉"><i data-lucide="x"></i></button></div>
 <div class="management-modal-body"><div class="base-data-edit-grid"><div class="form-group"><label id="baseDataCreateNameLabel" for="baseDataCreateName">印鑑名稱</label><input id="baseDataCreateName" placeholder="例如：大小章(1)"></div><div class="form-group"><label for="baseDataCreateOrder">顯示順序</label><input id="baseDataCreateOrder" type="number" min="1" placeholder="例如：1"><small>數字越小，顯示順序越前面。</small></div></div></div>
-<div class="management-modal-actions"><button type="button" class="btn btn-gray" onclick="closeBaseDataCreate()">取消</button><button id="baseDataCreateSaveButton" type="button" class="btn btn-primary" onclick="saveBaseDataCreate()"><i data-lucide="circle-plus"></i><span>新增印鑑</span></button></div>
+<div class="management-modal-actions create-modal-actions"><button type="button" class="btn btn-gray" onclick="closeBaseDataCreate()">取消</button><button id="baseDataCreateSaveButton" type="button" class="btn btn-primary" onclick="saveBaseDataCreate()"><i data-lucide="circle-plus"></i><span>新增印鑑</span></button></div>
 </section>
 </div>
 
-    <script defer src="./app.js?v=20260817-v1515-calendar-permission-modal"></script>
+    <script defer src="./app.js?v=20260820-v1516-calendar-modal-consistency"></script>
 
 </body>
 </html>
