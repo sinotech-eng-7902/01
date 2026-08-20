@@ -3554,8 +3554,6 @@ renderStatus();
 function renderBorrowPanelState(){
 const title = document.getElementById("borrowPanelTitle");
 const description = document.getElementById("borrowPanelDescription");
-const badge = document.getElementById("borrowModeBadge");
-const selectedName = document.getElementById("borrowSelectedSealName");
 const meta = document.getElementById("borrowedMeta");
 const confirmButton = document.getElementById("confirmBorrowMainButton");
 const editButton = document.getElementById("editBorrowedButton");
@@ -3582,10 +3580,6 @@ title.textContent = borrowPanelMode === "edit" ? "編輯借用資料" : "目前�
 description.textContent = borrowPanelMode === "edit"
 ? "修改完成後請儲存變更"
 : "此印鑑目前借出中；如需登記另一位借用人，請使用新增同印鑑借用";
-badge.className = "badge badge-red";
-badge.textContent = "借出中";
-badge.classList.remove("hidden");
-
 let switcherHtml = '';
 if (activeRecords.length > 1) {
     switcherHtml = `<div class="active-record-switcher">
@@ -3616,7 +3610,6 @@ meta.innerHTML = switcherHtml + `
 </div>`;
 
 setBorrowFormDisabled(borrowPanelMode !== "edit");
-if(selectedName) selectedName.textContent = active.seal || "尚未選擇";
 
 if(borrowPanelMode === "edit"){
 saveButton.classList.remove("hidden");
@@ -3654,13 +3647,8 @@ confirmButton.classList.remove("hidden");
 confirmButton.disabled = true;
 
 if(selectedBorrowSeal){
-badge.textContent = "可借用";
-badge.className = "badge badge-green";
-if(selectedName) selectedName.textContent = selectedBorrowSeal;
 document.getElementById("seal").value = selectedBorrowSeal;
 }else{
-badge.className = "badge badge-green hidden";
-if(selectedName) selectedName.textContent = "尚未選擇";
 document.getElementById("seal").value = "";
 }
 

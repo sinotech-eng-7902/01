@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>印鑑借用管理系統 v15.17</title>
+<title>印鑑借用管理系統 v15.18</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./styles.css?v=20260820-v1517-create-detail-consistency">
+<link rel="stylesheet" href="./styles.css?v=20260821-v1518-modal-actions">
 
 <script defer src="https://unpkg.com/lucide@latest"></script>
 
@@ -217,11 +217,6 @@ transition:.15s;
 <div>
 <h2><i data-lucide="user-round"></i><span id="borrowPanelTitle">借用資料</span></h2>
 <p id="borrowPanelDescription">請先從左側選擇一組可借用印鑑</p>
-</div>
-<div id="borrowSelectedSeal" class="borrow-selected-seal">
-<span>已選印鑑</span>
-<strong id="borrowSelectedSealName">尚未選擇</strong>
-<span id="borrowModeBadge" class="badge badge-green hidden">可借用</span>
 </div>
 </div>
 
@@ -1105,18 +1100,16 @@ onclick="saveEditRecord()">
 
 <div class="edit-modal">
 
+<div class="pending-modal-head">
+<div>
 <h2 class="detail-title">
-
-<i
-data-lucide="clock-3"
-class="detail-title-icon">
-</i>
-
+<i data-lucide="clock-3" class="detail-title-icon"></i>
 新增待借用案件
-
 </h2>
-
 <p class="modal-helper-text">先建立借用需求，正式借用時再選擇可用印鑑。</p>
+</div>
+<button type="button" class="management-modal-close pending-modal-close" onclick="closePendingModal()" aria-label="關閉"><i data-lucide="x"></i></button>
+</div>
 
 <div class="form-group">
 <label>承辦人</label>
@@ -1361,7 +1354,7 @@ onclick="confirmReturnSeal()">
 <section class="management-modal base-data-edit-dialog" role="dialog" aria-modal="true" aria-labelledby="baseDataEditTitle">
 <div class="management-modal-head"><div><h2 id="baseDataEditTitle">修改基礎資料</h2><p id="baseDataEditCaption">修改名稱與顯示順序。</p></div><button type="button" class="management-modal-close" onclick="closeBaseDataEdit()" aria-label="關閉"><i data-lucide="x"></i></button></div>
 <div class="management-modal-body"><div class="base-data-edit-grid"><div class="form-group"><label for="baseDataEditName">名稱</label><input id="baseDataEditName"></div><div class="form-group"><label for="baseDataEditOrder">顯示順序</label><input id="baseDataEditOrder" type="number"><small>數字越小，顯示順序越前面。</small></div></div></div>
-<div class="management-modal-actions"><button type="button" class="btn btn-gray" onclick="closeBaseDataEdit()">取消</button><button type="button" class="btn btn-primary" onclick="saveBaseDataEdit()">儲存變更</button></div>
+<div class="management-modal-actions create-modal-actions"><button type="button" class="btn btn-gray" onclick="closeBaseDataEdit()">取消</button><button type="button" class="btn btn-primary" onclick="saveBaseDataEdit()">儲存變更</button></div>
 </section>
 </div>
 
@@ -1373,7 +1366,7 @@ onclick="confirmReturnSeal()">
 </section>
 </div>
 
-    <script defer src="./app.js?v=20260820-v1517-create-detail-consistency"></script>
+    <script defer src="./app.js?v=20260821-v1518-modal-actions"></script>
 
 </body>
 </html>
