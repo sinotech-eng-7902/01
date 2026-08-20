@@ -1259,7 +1259,7 @@ return;
 area.innerHTML = `<div class="table-wrap"><table class="management-table"><thead><tr><th>部門</th><th>姓名</th><th>員工編號</th><th>Google 帳號</th><th>狀態</th><th>操作</th></tr></thead><tbody>${filtered.map(member=>{
 const active = member.active !== false;
 const email = memberGoogleEmail(member);
-return `<tr class="${active ? '' : 'is-inactive'}"><td>${escapeHtml(memberDepartmentName(member) || "未設定")}</td><td><b>${escapeHtml(member.name || "")}</b></td><td>${escapeHtml(memberEmployeeNo(member))}</td><td>${email ? escapeHtml(email) : '<span class="account-missing-badge">尚未設定</span>'}</td><td><span class="status-badge ${active ? 'status-active' : 'status-inactive'}">${active ? '啟用' : '停用'}</span></td><td class="operation-cell"><button class="btn btn-gray btn-sm" type="button" onclick="editSharedMember('${member.id}')">修改</button><button class="btn ${active ? 'btn-gray' : 'btn-primary'} btn-sm btn-inline" type="button" onclick="toggleSharedMember('${member.id}',${active ? 'false' : 'true'})">${active ? '停用' : '啟用'}</button><button class="btn btn-danger-outline btn-sm" type="button" onclick="deleteSharedMember('${member.id}')">刪除</button></td></tr>`;
+return `<tr class="${active ? '' : 'is-inactive'}"><td>${escapeHtml(memberDepartmentName(member) || "未設定")}</td><td><b>${escapeHtml(member.name || "")}</b></td><td>${escapeHtml(memberEmployeeNo(member))}</td><td>${email ? escapeHtml(email) : '<span class="account-missing-badge">尚未設定</span>'}</td><td><span class="status-badge ${active ? 'status-active' : 'status-inactive'}">${active ? '啟用' : '停用'}</span></td><td><div class="operation-cell"><button class="btn btn-gray btn-sm" type="button" onclick="editSharedMember('${member.id}')">修改</button><button class="btn ${active ? 'btn-gray' : 'btn-primary'} btn-sm btn-inline" type="button" onclick="toggleSharedMember('${member.id}',${active ? 'false' : 'true'})">${active ? '停用' : '啟用'}</button><button class="btn btn-danger-outline btn-sm" type="button" onclick="deleteSharedMember('${member.id}')">刪除</button></div></td></tr>`;
 }).join("")}</tbody></table></div>`;
 }
 
@@ -2700,17 +2700,17 @@ ${item.status==="已轉正式借用"
 
 </td>
 
-<td class="pending-action-column pending-text-actions">
+<td class="pending-action-column">
 
 ${currentRole === "viewer"
 
 ? ""
 
-: `
+: `<div class="pending-text-actions">
 <button type="button" class="btn btn-primary btn-sm" onclick="convertPending('${item.id}')">轉正式借用</button>
 <button type="button" class="btn btn-gray btn-sm" onclick="editPending('${item.id}')">編輯</button>
 <button type="button" class="btn btn-danger-outline btn-sm" onclick="deletePending('${item.id}')">刪除</button>
-`
+</div>`
 }
 
 </td>
@@ -2886,18 +2886,18 @@ if(countBadge) countBadge.textContent = `${departmentList.filter(item=>item.acti
 
 area.innerHTML = `<div class="table-wrap"><table class="management-table master-table"><thead><tr><th>部門名稱</th><th>狀態</th><th>顯示順序</th><th>調整順序</th><th>操作</th></tr></thead><tbody>${departmentList.map((dept,index)=>`
 <tr class="${dept.active === false ? 'is-inactive' : ''}">
-<td class="master-name-cell"><strong>${escapeHtml(dept.name || "未命名部門")}</strong></td>
+<td><div class="master-name-cell"><strong>${escapeHtml(dept.name || "未命名部門")}</strong></div></td>
 <td><span class="status-badge ${dept.active === false ? 'status-inactive' : 'status-active'}">${dept.active === false ? '停用' : '啟用'}</span></td>
 <td><span class="master-order-badge">${escapeHtml(dept.sortOrder ?? index + 1)}</span></td>
-<td class="master-order-actions">
+<td><div class="master-order-actions">
 <button type="button" class="icon-button" title="上移" aria-label="上移 ${escapeHtml(dept.name || "部門")}" onclick="moveDeptUp('${dept.id}')" ${index === 0 ? "disabled" : ""}><i data-lucide="arrow-up"></i></button>
 <button type="button" class="icon-button" title="下移" aria-label="下移 ${escapeHtml(dept.name || "部門")}" onclick="moveDeptDown('${dept.id}')" ${index === departmentList.length - 1 ? "disabled" : ""}><i data-lucide="arrow-down"></i></button>
-</td>
-<td class="operation-cell master-actions">
+</div></td>
+<td><div class="operation-cell master-actions">
 <button type="button" class="btn btn-gray btn-sm" onclick="openBaseDataEdit('department','${dept.id}')">修改</button>
 <button type="button" class="btn btn-gray btn-sm" onclick="toggleBaseDataActive('department','${dept.id}',${dept.active !== false})">${dept.active === false ? '啟用' : '停用'}</button>
 <button type="button" class="btn btn-danger-outline btn-sm" onclick="deleteDepartment('${dept.id}')">刪除</button>
-</td>
+</div></td>
 </tr>`).join("")}</tbody></table></div>`;
 lucide.createIcons();
 
@@ -3251,18 +3251,18 @@ if(countBadge) countBadge.textContent = `${sealList.filter(item=>item.active !==
 
 area.innerHTML = `<div class="table-wrap"><table class="management-table master-table"><thead><tr><th>印鑑名稱</th><th>狀態</th><th>顯示順序</th><th>調整順序</th><th>操作</th></tr></thead><tbody>${sealList.map((seal,index)=>`
 <tr class="${seal.active === false ? 'is-inactive' : ''}">
-<td class="master-name-cell"><strong>${escapeHtml(seal.name || "未命名印鑑")}</strong></td>
+<td><div class="master-name-cell"><strong>${escapeHtml(seal.name || "未命名印鑑")}</strong></div></td>
 <td><span class="status-badge ${seal.active === false ? 'status-inactive' : 'status-active'}">${seal.active === false ? '停用' : '啟用'}</span></td>
 <td><span class="master-order-badge">${escapeHtml(seal.sortOrder ?? index + 1)}</span></td>
-<td class="master-order-actions">
+<td><div class="master-order-actions">
 <button type="button" class="icon-button" title="上移" aria-label="上移 ${escapeHtml(seal.name || "印鑑")}" onclick="moveUp('${seal.id}')" ${index === 0 ? "disabled" : ""}><i data-lucide="arrow-up"></i></button>
 <button type="button" class="icon-button" title="下移" aria-label="下移 ${escapeHtml(seal.name || "印鑑")}" onclick="moveDown('${seal.id}')" ${index === sealList.length - 1 ? "disabled" : ""}><i data-lucide="arrow-down"></i></button>
-</td>
-<td class="operation-cell master-actions">
+</div></td>
+<td><div class="operation-cell master-actions">
 <button type="button" class="btn btn-gray btn-sm" onclick="openBaseDataEdit('seal','${seal.id}')">修改</button>
 <button type="button" class="btn btn-gray btn-sm" onclick="toggleBaseDataActive('seal','${seal.id}',${seal.active !== false})">${seal.active === false ? '啟用' : '停用'}</button>
 <button type="button" class="btn btn-danger-outline btn-sm" onclick="deleteSeal('${seal.id}')">刪除</button>
-</td>
+</div></td>
 </tr>`).join("")}</tbody></table></div>`;
 lucide.createIcons();
 
@@ -4448,9 +4448,9 @@ tr.innerHTML = `
 <td>${r.purpose}</td>
 <td>${formatDate(r.borrowTime)}</td>
 
-<td class="operation-cell return-text-actions">
+<td><div class="operation-cell return-text-actions">
 <button type="button" class="btn btn-return btn-sm" onclick="openReturnModal('${r.id}')">歸還</button>
-</td>
+</div></td>
 `;
 
 table.appendChild(tr);
