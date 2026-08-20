@@ -1811,7 +1811,7 @@ cursor:pointer;
 
 text-align:center;
 
-color:#64748b;
+color:#475569;
 
 font-size:15px;
 
@@ -1819,6 +1819,23 @@ font-weight:600;
 
 padding:30px 16px;
 
+background:#fff;
+
+line-height:1.6;
+
+}
+
+#pendingPage .table-empty-cell,
+#returnPage .table-empty-cell,
+#historyPage .table-empty-cell,
+#auditLogPage .table-empty-cell,
+#loginLogPage .table-empty-cell{
+    color:#475569;
+    background:#fff;
+    font-size:15px;
+    font-weight:600;
+    padding:30px 16px;
+    text-align:center;
 }
 
 .hidden{

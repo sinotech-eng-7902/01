@@ -704,7 +704,7 @@ if(pageRows.length === 0){
 
 table.innerHTML = `
 <tr>
-<td colspan="7">目前沒有符合條件的操作紀錄</td>
+<td class="table-empty-cell" colspan="7">目前沒有符合條件的操作紀錄</td>
 </tr>
 `;
 
@@ -1182,6 +1182,9 @@ overlay?.setAttribute("aria-hidden","true");
 document.body.classList.remove("modal-open");
 }
 
+window.openAuditDetail = openAuditDetail;
+window.closeAuditDetail = closeAuditDetail;
+
 window.updateNewPermissionRoleHelp = updateNewPermissionRoleHelp;
 window.openPermissionCreateModal = openPermissionCreateModal;
 window.closePermissionCreateModal = closePermissionCreateModal;
@@ -1274,7 +1277,7 @@ if(!currentIsSystemAdmin) return alert("此功能僅限系統管理員");
 memberEditorMode = "new";
 editingSharedMemberId = null;
 document.getElementById("memberEditorTitle").textContent = "新增人員";
-document.getElementById("memberSaveButton").textContent = "新增人員";
+document.getElementById("memberSaveButton").textContent = "新增";
 fillSharedMemberForm(null);
 document.getElementById("memberEditor").classList.remove("hidden");
 document.getElementById("memberEditor").setAttribute("aria-hidden","false");
@@ -1371,7 +1374,7 @@ console.error("儲存共用人員失敗",error);
 alert(`人員資料儲存失敗：${error.message || "請檢查 Firestore 規則與網路"}`);
 }finally{
 saveButton.disabled = false;
-if(memberEditorMode !== "view") saveButton.textContent = memberEditorMode === "new" ? "新增人員" : "儲存變更";
+if(memberEditorMode !== "view") saveButton.textContent = memberEditorMode === "new" ? "新增" : "儲存變更";
 }
 }
 
@@ -1921,6 +1924,13 @@ document.getElementById("pendingFormNo").value = "";
 document.getElementById("pendingPurpose").value = "";
 editingPendingId = null;
 
+const pendingSaveButton = document.getElementById("pendingSaveButton");
+if(pendingSaveButton){
+pendingSaveButton.textContent = "新增";
+pendingSaveButton.classList.remove("btn-green");
+pendingSaveButton.classList.add("btn-primary");
+}
+
 document.querySelector(
 "#pendingOverlay h2"
 ).innerHTML = `
@@ -1974,6 +1984,8 @@ document.getElementById("pendingFormNo")
 const purpose =
 document.getElementById("pendingPurpose")
 .value.trim();
+
+const wasEditing = Boolean(editingPendingId);
 
 if(
 !borrower ||
@@ -2129,7 +2141,7 @@ userList.find(u=>u.id===id);
 
 if(isLastEnabledSealAdmin(user)){
 
-alert("至少必須保留一位啟用中的系統管理員，無法移除此權限");
+alert("此位人員為唯一系統管理員，不可刪除。");
 return;
 
 }
@@ -2300,6 +2312,13 @@ item.formNo || "";
 document.getElementById("pendingPurpose").value = item.purpose || "";
 document.getElementById("pendingExpectedBorrowTime").value = formatDateTimeLocal(item.expectedBorrowTime);
 document.getElementById("pendingExpectedReturnTime").value = formatDateTimeLocal(item.expectedReturnTime);
+
+const pendingSaveButton = document.getElementById("pendingSaveButton");
+if(pendingSaveButton){
+pendingSaveButton.textContent = "儲存變更";
+pendingSaveButton.classList.remove("btn-green");
+pendingSaveButton.classList.add("btn-primary");
+}
 
 document.querySelector(
 "#pendingOverlay h2"
@@ -2568,7 +2587,6 @@ return `<tr id="permissionRow_${index}" class="${user.enabled === false ? 'is-in
 <td>
 <div class="permission-status-stack">
 <span class="status-badge ${user.enabled !== false ? "status-active" : "status-inactive"}">${user.enabled !== false ? "啟用" : "停用"}</span>
-${isLastEnabledSealAdmin(user) ? '<small>唯一啟用管理員</small>' : ""}
 </div>
 </td>
 <td>
@@ -3059,7 +3077,7 @@ nameInput.value = "";
 nameInput.placeholder = isSeal ? "例如：大小章(1)" : "例如：行政部";
 }
 if(orderInput) orderInput.value = "";
-if(saveButton) saveButton.innerHTML = `<i data-lucide="circle-plus"></i><span>新增${isSeal ? "印鑑" : "部門"}</span>`;
+if(saveButton) saveButton.innerHTML = `<span>新增</span>`;
 overlay.classList.add("open");
 overlay.setAttribute("aria-hidden","false");
 document.body.classList.add("modal-open");
@@ -3088,7 +3106,7 @@ const collectionName = isSeal ? "seals" : "departments";
 const newRef = await addDoc(collection(db,collectionName),{name,sortOrder,active:true,createdAt:Timestamp.now(),createdByEmail:normalizeEmail(currentUserEmail)});
 await writeAuditLog({action:"create",category:isSeal ? "seal" : "department",targetId:newRef.id,targetLabel:name,after:{name,sortOrder,active:true}});
 closeBaseDataCreate();
-alert("新增成功");
+alert(wasEditing ? "變更已儲存" : "新增成功");
 await (isSeal ? loadSeals() : loadDepartments());
 }
 
