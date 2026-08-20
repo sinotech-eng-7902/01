@@ -5586,7 +5586,7 @@ function initSealCalendar() {
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
-            right: 'dayGridMonth,listMonth'
+            right: 'dayGridMonth,timeGridWeek,listMonth'
         },
         displayEventTime: true,
         eventTimeFormat:{hour:'2-digit',minute:'2-digit',hour12:false},
@@ -5594,6 +5594,7 @@ function initSealCalendar() {
         buttonText: {
             today: '今天',
             month: '月曆',
+            week: '週',
             list: '清單'
         },
         height: 'auto',
