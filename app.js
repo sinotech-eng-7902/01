@@ -4818,25 +4818,10 @@ font-size:16px;
 `
 
 : `
-
-<button
-class="action-btn edit-btn tooltip"
-data-tip="修改"
-onclick="editRecord('${r.id}')">
-
-<i data-lucide="pencil"></i>
-
-</button>
-
-<button
-class="action-btn delete-btn tooltip"
-data-tip="刪除"
-onclick="deleteRecord('${r.id}')">
-
-<i data-lucide="trash-2"></i>
-
-</button>
-
+<div class="operation-cell record-text-actions">
+<button type="button" class="btn btn-gray btn-sm" onclick="editRecord('${r.id}')">編輯</button>
+<button type="button" class="btn btn-danger-outline btn-sm" onclick="deleteRecord('${r.id}')">刪除</button>
+</div>
 `
 
 }
